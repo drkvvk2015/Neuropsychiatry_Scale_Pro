@@ -37,6 +37,8 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
     AppConstants.scaleCSSRS,
     AppConstants.scaleHAMD,
     AppConstants.scaleYMRS,
+    AppConstants.scaleYBOCS,
+    AppConstants.scaleMMSE,
   ];
 
   @override
@@ -88,6 +90,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   int get _totalScore => _scores.values.fold(0, (s, v) => s + v);
 
   String get _severity {
+    if (_selectedScale == null) return AppConstants.severityNormal;
     if (_selectedScale == AppConstants.scaleCSSRS) {
       return ScoringEngine.cssrsRisk(_scores);
     }
@@ -95,6 +98,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   }
 
   String get _riskLevel {
+    if (_selectedScale == null) return AppConstants.riskNone;
     if (_selectedScale == AppConstants.scaleCSSRS) return _severity;
     switch (_severity) {
       case AppConstants.severityVerySevere:
@@ -109,23 +113,26 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   Future<void> _saveResult() async {
     if (_selectedPatient == null || _selectedScale == null) return;
     setState(() => _saving = true);
+    // Capture values before reset so the snackbar can reference them.
+    final scaleName = _selectedScale!;
+    final score = _totalScore;
     final result = ScaleResult(
       patientId: _selectedPatient!.id,
-      scaleName: _selectedScale!,
-      totalScore: _totalScore,
+      scaleName: scaleName,
+      totalScore: score,
       severity: _severity,
       riskLevel: _riskLevel,
       itemScores: Map.from(_scores),
     );
     await _db.insertScaleResult(result);
     if (mounted) {
-      setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Saved: $_selectedScale — Score: $_totalScore'),
+        content: Text('Saved: $scaleName — Score: $score'),
         backgroundColor: AppTheme.successColor,
       ));
-      // Reset for next patient
+      // Reset in a single setState to avoid intermediate broken state.
       setState(() {
+        _saving = false;
         _step = 0;
         _selectedPatient = null;
         _selectedScale = null;
@@ -325,7 +332,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
       children: [
         _stepHeader(
             '${_currentItemIndex + 1} / ${_items.length}',
-            _selectedScale!,
+            _selectedScale ?? '',
             Icons.edit),
         _patientChip(),
         // Progress
@@ -435,7 +442,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
       key: const ValueKey('result'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _stepHeader('Result', _selectedScale!, Icons.check_circle),
+        _stepHeader('Result', _selectedScale ?? '', Icons.check_circle),
         if (isCritical)
           AlertBanner(
             riskLevel: _riskLevel,
