@@ -1,302 +1,99 @@
-# 🧠 NeuroScale Pro — AI Psychiatry Clinical System
+# NeuroScale Pro
 
-NeuroScale Pro is a **production-grade psychiatry clinical assistant** designed for real-world hospital use.
+NeuroScale Pro is a Flutter-based clinical support app for structured neuropsychiatric assessment and risk-oriented patient follow-up.
 
-It combines:
+## Features
 
-* 📊 Standardized psychiatric scoring systems
-* 🤖 Offline AI clinical assistant
-* 🎤 Voice-based input (Tamil + English)
-* 🚨 Risk detection (suicide / severity)
-* 📈 Analytics & research tools
+- Standardized scale-based assessments:
+   - BPRS
+   - PHQ-9
+   - GAD-7
+   - HAM-D
+   - YMRS
+   - Y-BOCS
+   - MMSE
+   - C-SSRS
+- ICU mode for rapid bedside scoring.
+- Patient management with assessment history.
+- Risk highlighting for high-severity/suicide-related findings.
+- Analytics dashboard for trends and usage.
+- AI-assisted summary generation with fallback mode when model is unavailable.
+- Voice-assisted input support.
 
----
+## Tech Stack
 
-# 🚀 Features
+- Flutter + Provider state management
+- SQLite local storage (`sqflite`)
+- Android release pipeline with R8, resource shrinking, and Play Store-ready signing
 
-## 🧠 Psychiatry Scales
+## Project Structure
 
-* BPRS (24 items)
-* PHQ-9
-* GAD-7
-* HAM-D
-* YMRS
-* Y-BOCS
-* MMSE
-* C-SSRS (Suicide Risk)
-
----
-
-## ⚡ ICU Mode (Ultra Fast)
-
-* Tap-based scoring
-* One-screen workflow
-* Designed for emergency / ward use
-
----
-
-## 🤖 Offline AI Assistant
-
-* Runs locally (no internet required)
-* Generates:
-
-  * Clinical summary
-  * Severity interpretation
-  * Risk assessment
-  * Treatment suggestions
-
----
-
-## 🚨 Smart Alerts
-
-* Suicide risk detection
-* Severe case flagging
-* Visual emergency warnings
-
----
-
-## 🎤 Voice Input
-
-* Offline speech recognition
-* Tamil + English support
-* Converts speech → scoring inputs
-
----
-
-## 📊 Analytics & Research
-
-* Patient trend graphs
-* Ward-level analytics
-* CSV export for research (SPSS / R)
-
----
-
-## 💊 Drug Suggestion Engine
-
-* Guideline-based suggestions
-* Diagnosis-driven recommendations
-
----
-
-# 🏗️ Architecture
-
-```
-Flutter App
-   ↓
-Clinical Engine (Scales + Rules)
-   ↓
-AI Layer (Local LLM via llama.cpp)
-   ↓
-Voice Layer (Vosk)
-   ↓
-Storage (SQLite / Firebase optional)
-```
-
----
-
-# 📁 Project Structure
-
-```
+```text
 lib/
- ├── core/
- ├── models/
- ├── services/
- │    ├── scoring_engine.dart
- │    ├── drug_engine.dart
- │    ├── ai_engine.dart
- ├── ai/
- │    ├── local_ai.dart
- │    ├── prompt_engine.dart
- ├── voice/
- │    ├── speech_service.dart
- ├── screens/
- │    ├── dashboard.dart
- │    ├── patient_screen.dart
- │    ├── scale_screen.dart
- │    ├── icu_mode.dart
- ├── widgets/
- └── main.dart
+   core/
+      models/
+      providers/
+      services/
+      theme/
+   screens/
+   main.dart
+android/
+test/
 ```
 
----
+## Getting Started
 
-# ⚙️ Setup Instructions
+1. Install Flutter SDK and Android toolchain.
+2. Clone this repository.
+3. Install dependencies:
 
-## 1. Install Flutter
-
-https://docs.flutter.dev/get-started/install
-
----
-
-## 2. Clone Repo
-
-```
-git clone https://github.com/your-username/neuroscale-pro.git
-cd neuroscale-pro
-```
-
----
-
-## 3. Install Dependencies
-
-```
+```bash
 flutter pub get
 ```
 
----
+4. Run app:
 
-## 4. Add AI Model (IMPORTANT)
-
-Download GGUF model (TinyLlama recommended)
-
-Place here:
-
-```
-android/app/src/main/assets/model.gguf
-```
-
----
-
-## 5. Add Voice Models
-
-Download Vosk models:
-
-```
-assets/models/en
-assets/models/ta
-```
-
----
-
-## 6. Run App
-
-```
+```bash
 flutter run
 ```
 
----
+## Build
 
-# 📦 Build APK / AAB
+Debug APK:
 
-## Debug APK
-
-```
+```bash
 flutter build apk
 ```
 
-## Release (Play Store)
+Release AAB:
 
-```
+```bash
 flutter build appbundle --release
 ```
 
----
+## Google Play Release Setup
 
-# 🧠 AI Integration
+1. Generate an upload keystore.
+2. Copy `android/key.properties.example` to `android/key.properties` and fill values.
+3. Build signed bundle:
 
-## Engine
-
-* llama.cpp (on-device inference)
-* GGUF quantized models
-
-## Prompt Example
-
-```
-You are a psychiatrist.
-
-Patient:
-Diagnosis: Schizophrenia
-BPRS: 82
-
-Provide:
-- Severity
-- Risk
-- Plan
-- Clinical note
+```bash
+cd android
+./gradlew bundleRelease
 ```
 
----
+Output:
 
-# 🚨 Clinical Safety
+```text
+build/app/outputs/bundle/release/app-release.aab
+```
 
-⚠️ This app is a **clinical support tool only**
+Detailed release steps are documented in `android/PLAYSTORE_RELEASE.md`.
 
-* Does NOT replace psychiatrist judgment
-* Always verify AI outputs
-* Use alerts as guidance, not diagnosis
+## Clinical Safety Notice
 
----
+This app is a clinical support tool. It does not replace professional psychiatric judgment.
 
-# 🔐 Privacy
+## License
 
-* Data stored locally by default
-* No cloud required
-* Optional Firebase sync
-
----
-
-# 💰 Business Model (Optional)
-
-* Free: basic scoring
-* Pro:
-
-  * AI assistant
-  * Analytics
-  * Cloud sync
-
----
-
-# 🏥 Hospital Deployment
-
-## Workflow
-
-1. Add patient
-2. Score using ICU mode
-3. Review AI summary
-4. Check alerts
-5. Track progress
-
----
-
-# 📈 Roadmap
-
-* SaaS hospital platform
-* Web dashboard
-* Predictive AI
-* Multi-hospital system
-
----
-
-# 🤝 Contributing
-
-Pull requests are welcome.
-
----
-
-# 📄 License
-
-MIT License
-
----
-
-# 🧠 Vision
-
-> “To become the operating system for psychiatry.”
-
----
-
-# 🚀 Status
-
-✅ Production-ready
-✅ Hospital deployable
-✅ AI-powered
-✅ Offline capable
-
----
-
-# 📞 Contact
-
-Email: [your@email.com](mailto:your@email.com)
-Website: yourdomain.com
-
----
+MIT
