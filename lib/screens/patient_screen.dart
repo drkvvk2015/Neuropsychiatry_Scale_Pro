@@ -66,11 +66,8 @@ class _PatientScreenState extends State<PatientScreen>
   }
 
   ScaleResult? _latestResult(String scaleName) {
-    try {
-      return _results.firstWhere((r) => r.scaleName == scaleName);
-    } catch (_) {
-      return null;
-    }
+    final index = _results.indexWhere((r) => r.scaleName == scaleName);
+    return index >= 0 ? _results[index] : null;
   }
 
   String get _overallRisk {
