@@ -105,6 +105,41 @@ class DatabaseService {
     return maps.map(ScaleResult.fromMap).toList();
   }
 
+  /// Returns the single most-recent result per patient for a list of patient IDs.
+  /// Uses one SQL query instead of one query per patient (avoids N+1 problem).
+  /// The returned map contains an entry for every supplied patient ID;
+  /// the value is null when no assessment has been recorded for that patient.
+  Future<Map<String, ScaleResult?>> getLatestResultsForPatients(
+      List<String> patientIds) async {
+    // Pre-populate with null so callers can distinguish "no result" from
+    // "patient not queried".
+    final result = <String, ScaleResult?>{for (final id in patientIds) id: null};
+    if (patientIds.isEmpty) return result;
+
+    final database = await db;
+    // Build one placeholder per patient ID for parameterized binding.
+    // Parameters are passed separately to prevent SQL injection.
+    final placeholders = List.filled(patientIds.length, '?').join(',');
+    // Subquery selects the MAX assessed_at per patient; the join returns only
+    // that single most-recent row per patient — no in-memory filtering needed.
+    final maps = await database.rawQuery(
+      'SELECT sr.* FROM scale_results sr '
+      'INNER JOIN ('
+      '  SELECT patient_id, MAX(assessed_at) AS max_at '
+      '  FROM scale_results '
+      '  WHERE patient_id IN ($placeholders) '
+      '  GROUP BY patient_id'
+      ') latest ON sr.patient_id = latest.patient_id '
+      '        AND sr.assessed_at = latest.max_at',
+      patientIds,
+    );
+    for (final map in maps) {
+      final pid = map['patient_id'] as String;
+      result[pid] = ScaleResult.fromMap(map);
+    }
+    return result;
+  }
+
   Future<List<ScaleResult>> getResultsForScale(
       String patientId, String scaleName) async {
     final database = await db;

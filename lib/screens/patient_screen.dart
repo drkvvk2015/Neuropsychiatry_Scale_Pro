@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../services/ai_engine.dart';
 import '../services/drug_engine.dart';
+import '../services/scoring_engine.dart';
 import '../models/patient.dart';
 import '../models/scale_result.dart';
 import '../core/constants.dart';
@@ -236,7 +237,7 @@ class _PatientScreenState extends State<PatientScreen>
         return ScaleCard(
           scaleName: scaleName,
           score: result?.totalScore,
-          maxScore: 0, // Not shown on card
+          maxScore: ScoringEngine.getMaxScore(scaleName),
           severity: result?.severity ?? '',
           riskLevel: result?.riskLevel ?? '',
           assessedAt: result?.assessedAt,
