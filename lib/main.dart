@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/providers/patient_provider.dart';
@@ -11,18 +10,26 @@ import 'screens/patient_list_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/settings_screen.dart';
 
-void main() {
-  runApp(const NeuroScalePro());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final patientProvider = PatientProvider();
+  await patientProvider.loadPatients();
+  runApp(NeuroScalePro(patientProvider: patientProvider));
 }
 
 class NeuroScalePro extends StatelessWidget {
-  const NeuroScalePro({super.key});
+  final PatientProvider patientProvider;
+
+  const NeuroScalePro({
+    super.key,
+    required this.patientProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => PatientProvider()),
+        ChangeNotifierProvider.value(value: patientProvider),
         ChangeNotifierProvider(create: (_) => ScaleProvider()),
         ChangeNotifierProvider(create: (_) => AIProvider()),
       ],

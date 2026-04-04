@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/providers/patient_provider.dart';
-import '../core/theme/app_theme.dart';
 
 class AddPatientScreen extends StatefulWidget {
   const AddPatientScreen({super.key});

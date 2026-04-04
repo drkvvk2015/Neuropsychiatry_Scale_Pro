@@ -33,29 +33,31 @@ class Patient {
       'name': name,
       'age': age,
       'gender': gender,
-      'phone': phone,
-      'address': address,
-      'diagnosis': diagnosis,
-      'notes': notes,
+      'phone': phone ?? '',
+      'address': address ?? '',
+      'diagnosis': diagnosis ?? '',
+      'notes': notes ?? '',
       'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
-      'photoUrl': photoUrl,
+      'updatedAt': updatedAt?.toIso8601String() ?? '',
+      'photoUrl': photoUrl ?? '',
     };
   }
 
   factory Patient.fromMap(Map<String, dynamic> map) {
     return Patient(
-      id: map['id'],
-      name: map['name'],
-      age: map['age'],
-      gender: map['gender'],
-      phone: map['phone'],
-      address: map['address'],
-      diagnosis: map['diagnosis'],
-      notes: map['notes'],
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
-      photoUrl: map['photoUrl'],
+      id: map['id'] ?? '',
+      name: map['name'] ?? 'Unknown',
+      age: (map['age'] ?? 0).toInt(),
+      gender: map['gender'] ?? 'Unknown',
+      phone: map['phone']?.toString().isEmpty ?? true ? null : map['phone'],
+      address: map['address']?.toString().isEmpty ?? true ? null : map['address'],
+      diagnosis: map['diagnosis']?.toString().isEmpty ?? true ? null : map['diagnosis'],
+      notes: map['notes']?.toString().isEmpty ?? true ? null : map['notes'],
+      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
+      updatedAt: map['updatedAt'] != null && map['updatedAt'].toString().isNotEmpty 
+          ? DateTime.parse(map['updatedAt']) 
+          : null,
+      photoUrl: map['photoUrl']?.toString().isEmpty ?? true ? null : map['photoUrl'],
     );
   }
 

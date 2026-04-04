@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -22,7 +21,7 @@ class AIEngine {
         resolvedPath = await _findDefaultModelPath();
       }
       
-      if (resolvedPath == null || !(await File(resolvedPath).exists())) {
+      if (resolvedPath == null || resolvedPath.isEmpty) {
         debugPrint('AI Model not found. Running in fallback mode.');
         _isInitialized = false;
         _modelPath = null;
@@ -43,19 +42,13 @@ class AIEngine {
   /// Find the default model path based on platform
   Future<String?> _findDefaultModelPath() async {
     try {
-      Directory? appDir;
-      
-      if (Platform.isAndroid) {
-        // On Android, look in app assets
-        appDir = await getApplicationDocumentsDirectory();
-        return '${appDir.path}/model.gguf';
-      } else if (Platform.isIOS) {
-        appDir = await getApplicationDocumentsDirectory();
-        return '${appDir.path}/model.gguf';
-      } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-        appDir = await getApplicationDocumentsDirectory();
-        return '${appDir.path}/neuroscale/model.gguf';
+      // path_provider and filesystem model paths are not available on web.
+      if (kIsWeb) {
+        return null;
       }
+
+      final appDir = await getApplicationDocumentsDirectory();
+      return '${appDir.path}/model.gguf';
     } catch (e) {
       debugPrint('Error finding default model path: $e');
     }

@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../core/providers/patient_provider.dart';
 import '../core/theme/app_theme.dart';
-import '../core/models/scale_model.dart';
 
 class AnalyticsScreen extends StatelessWidget {
   const AnalyticsScreen({super.key});

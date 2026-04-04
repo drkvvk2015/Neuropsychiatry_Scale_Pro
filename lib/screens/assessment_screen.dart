@@ -51,10 +51,12 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
           );
         }
 
-        return WillPopScope(
-          onWillPop: () async {
-            _showCancelConfirmation(context, scaleProvider);
-            return false;
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (!didPop) {
+              _showCancelConfirmation(context, scaleProvider);
+            }
           },
           child: Scaffold(
             appBar: AppBar(
@@ -426,6 +428,13 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
           ),
         );
       }
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.lastError ?? 'Unable to complete assessment. Please try again.'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
     }
   }
 }

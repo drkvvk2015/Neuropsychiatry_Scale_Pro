@@ -24,8 +24,11 @@ class AIProvider with ChangeNotifier {
 
     try {
       await _aiEngine.initialize(modelPath: modelPath);
-      _isInitialized = true;
-      _modelPath = modelPath;
+      _isInitialized = _aiEngine.isInitialized;
+      _modelPath = _aiEngine.modelPath;
+      if (!_isInitialized) {
+        _lastError = 'AI model unavailable. Running in fallback mode.';
+      }
     } catch (e) {
       _lastError = e.toString();
       debugPrint('AI Engine initialization error: $e');

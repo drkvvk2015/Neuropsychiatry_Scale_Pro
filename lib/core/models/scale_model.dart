@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../theme/app_theme.dart';
 
 enum ScaleType {
@@ -116,24 +118,66 @@ class Assessment {
       'id': id,
       'patientId': patientId,
       'scaleType': scaleType.name,
-      'itemScores': itemScores,
+      'itemScores': jsonEncode(itemScores),
       'totalScore': totalScore,
       'severityLevel': severityLevel.name,
       'riskLevel': riskLevel.name,
       'assessedAt': assessedAt.toIso8601String(),
       'notes': notes,
       'aiSummary': aiSummary,
-      'hasSuicideRisk': hasSuicideRisk,
-      'alerts': alerts,
+      'hasSuicideRisk': hasSuicideRisk ? 1 : 0,
+      'alerts': jsonEncode(alerts),
     };
   }
 
   factory Assessment.fromMap(Map<String, dynamic> map) {
+    // Parse itemScores from JSON string
+    Map<String, int> itemScores = {};
+    if (map['itemScores'] != null) {
+      if (map['itemScores'] is String) {
+        try {
+          final decoded = jsonDecode(map['itemScores']) as Map<String, dynamic>;
+          itemScores = decoded.map((key, value) => MapEntry(key, (value as num).toInt()));
+        } catch (e) {
+          debugPrint('Assessment.fromMap itemScores parse error: $e');
+          itemScores = {};
+        }
+      } else if (map['itemScores'] is Map) {
+        itemScores = Map<String, int>.from(map['itemScores']);
+      }
+    }
+
+    // Parse alerts from JSON string
+    List<String> alerts = [];
+    if (map['alerts'] != null) {
+      if (map['alerts'] is String) {
+        try {
+          final decoded = jsonDecode(map['alerts']) as List;
+          alerts = decoded.map((e) => e.toString()).toList();
+        } catch (e) {
+          debugPrint('Assessment.fromMap alerts parse error: $e');
+          alerts = [];
+        }
+      } else if (map['alerts'] is List) {
+        alerts = List<String>.from(map['alerts']);
+      }
+    }
+
+    // Parse hasSuicideRisk (stored as 0/1 in SQLite)
+    bool hasSuicideRisk = false;
+    if (map['hasSuicideRisk'] != null) {
+      if (map['hasSuicideRisk'] is int) {
+        hasSuicideRisk = map['hasSuicideRisk'] == 1;
+      } else if (map['hasSuicideRisk'] is bool) {
+        hasSuicideRisk = map['hasSuicideRisk'];
+      }
+    }
+
     return Assessment(
       id: map['id'],
       patientId: map['patientId'],
       scaleType: ScaleType.values.firstWhere((e) => e.name == map['scaleType']),
-      itemScores: Map<String, int>.from(map['itemScores']),
+      itemScores: itemScores,
       totalScore: map['totalScore'],
       severityLevel: SeverityLevel(
         name: map['severityLevel'],
@@ -152,8 +196,8 @@ class Assessment {
       assessedAt: DateTime.parse(map['assessedAt']),
       notes: map['notes'],
       aiSummary: map['aiSummary'],
-      hasSuicideRisk: map['hasSuicideRisk'] ?? false,
-      alerts: List<String>.from(map['alerts'] ?? []),
+      hasSuicideRisk: hasSuicideRisk,
+      alerts: alerts,
     );
   }
 

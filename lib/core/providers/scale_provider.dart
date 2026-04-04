@@ -16,6 +16,7 @@ class ScaleProvider with ChangeNotifier {
   bool _isICUMode = false;
   String? _aiSummary;
   bool _isLoading = false;
+  String? _lastError;
 
   ScaleType? get selectedScaleType => _selectedScaleType;
   Map<String, int> get currentScores => _currentScores;
@@ -24,6 +25,7 @@ class ScaleProvider with ChangeNotifier {
   bool get isICUMode => _isICUMode;
   String? get aiSummary => _aiSummary;
   bool get isLoading => _isLoading;
+  String? get lastError => _lastError;
 
   ScaleDefinition? get currentScaleDefinition {
     if (_selectedScaleType == null) return null;
@@ -91,7 +93,8 @@ class ScaleProvider with ChangeNotifier {
       return null;
     }
 
-    final definition = currentScaleDefinition!;
+    _lastError = null;
+
     final severity = currentSeverityLevel!;
     final risk = currentRiskLevel;
 
@@ -138,7 +141,9 @@ class ScaleProvider with ChangeNotifier {
       _isAssessing = false;
       notifyListeners();
     } catch (e) {
+      _lastError = 'Failed to save assessment. Please try again.';
       debugPrint('Error saving assessment: $e');
+      notifyListeners();
       return null;
     }
 
