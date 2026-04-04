@@ -31,11 +31,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadPatients() async {
     setState(() => _loading = true);
     final patients = await _db.getAllPatients();
-    final resultsMap = <String, ScaleResult?>{};
-    for (final p in patients) {
-      final results = await _db.getResultsForPatient(p.id);
-      resultsMap[p.id] = results.isNotEmpty ? results.first : null;
-    }
+    final patientIds = patients.map((p) => p.id).toList();
+    final resultsMap = await _db.getLatestResultsForPatients(patientIds);
     if (mounted) {
       setState(() {
         _patients = patients;
