@@ -31,7 +31,7 @@ class VoiceService {
 
       _isInitialized = await _speech.initialize(
         onError: (error) {
-          _lastError = error?.errorMsg;
+          _lastError = error.errorMsg;
         },
       );
 
@@ -134,22 +134,45 @@ class VoiceService {
     // Common keywords for score levels
     final scoreKeywords = {
       0: ['not at all', 'none', 'no', 'never', 'zero', 'illai', 'வேண்டாம்'],
-      1: ['slight', 'a little', 'sometimes', 'few days', 'mild', 'ஒரு சில', 'சிறிது'],
-      2: ['moderate', 'often', 'more than half', 'several days', 'medium', 'பெரும்பாலும்'],
-      3: ['severe', 'always', 'nearly every day', 'extreme', 'heavy', 'எப்போதும்', 'கடுமையான'],
+      1: [
+        'slight',
+        'a little',
+        'sometimes',
+        'few days',
+        'mild',
+        'ஒரு சில',
+        'சிறிது',
+      ],
+      2: [
+        'moderate',
+        'often',
+        'more than half',
+        'several days',
+        'medium',
+        'பெரும்பாலும்',
+      ],
+      3: [
+        'severe',
+        'always',
+        'nearly every day',
+        'extreme',
+        'heavy',
+        'எப்போதும்',
+        'கடுமையான',
+      ],
     };
 
     // Simple parsing - in production, this would be more sophisticated
     for (int i = 0; i < itemIds.length; i++) {
       int score = 0;
-      
+
       for (final entry in scoreKeywords.entries) {
         if (entry.value.any((keyword) => lowerResponse.contains(keyword))) {
           score = entry.key.clamp(0, maxScore);
           break;
         }
       }
-      
+
       scores[itemIds[i]] = score;
     }
 
@@ -159,13 +182,23 @@ class VoiceService {
   /// Convert numbers spoken as words to integers
   int? parseSpokenNumber(String words) {
     final numberWords = {
-      'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,
-      'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9,
-      'ten': 10, 'eleven': 11, 'twelve': 12,
+      'zero': 0,
+      'one': 1,
+      'two': 2,
+      'three': 3,
+      'four': 4,
+      'five': 5,
+      'six': 6,
+      'seven': 7,
+      'eight': 8,
+      'nine': 9,
+      'ten': 10,
+      'eleven': 11,
+      'twelve': 12,
     };
 
     final lowerWords = words.toLowerCase().trim();
-    
+
     if (numberWords.containsKey(lowerWords)) {
       return numberWords[lowerWords];
     }

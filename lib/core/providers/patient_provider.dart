@@ -43,6 +43,7 @@ class PatientProvider with ChangeNotifier {
       await loadPatients();
     } catch (e) {
       debugPrint('Error adding patient: $e');
+      rethrow;
     }
   }
 
@@ -53,6 +54,7 @@ class PatientProvider with ChangeNotifier {
       await loadPatients();
     } catch (e) {
       debugPrint('Error updating patient: $e');
+      rethrow;
     }
   }
 
@@ -62,6 +64,7 @@ class PatientProvider with ChangeNotifier {
       await loadPatients();
     } catch (e) {
       debugPrint('Error deleting patient: $e');
+      rethrow;
     }
   }
 

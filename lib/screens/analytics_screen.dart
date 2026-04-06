@@ -32,24 +32,24 @@ class AnalyticsScreen extends StatelessWidget {
                     children: [
                       // Overview Stats
                       _buildOverviewStats(provider),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Scale Usage Chart
                       _buildScaleUsageChart(provider),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Risk Distribution
                       _buildRiskDistribution(provider),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Monthly Trend
                       _buildMonthlyTrend(provider),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Recent High Risk
                       _buildHighRiskList(provider),
                     ],
@@ -92,24 +92,57 @@ class AnalyticsScreen extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildStatCard('Total Patients', provider.totalPatients.toString(), Icons.people, AppTheme.primaryColor)),
+            Expanded(
+              child: _buildStatCard(
+                'Total Patients',
+                provider.totalPatients.toString(),
+                Icons.people,
+                AppTheme.primaryColor,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildStatCard('Assessments', provider.assessments.length.toString(), Icons.analytics, AppTheme.secondaryColor)),
+            Expanded(
+              child: _buildStatCard(
+                'Assessments',
+                provider.assessments.length.toString(),
+                Icons.analytics,
+                AppTheme.secondaryColor,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildStatCard('This Month', provider.assessmentsThisMonth.toString(), Icons.calendar_today, AppTheme.successColor)),
+            Expanded(
+              child: _buildStatCard(
+                'This Month',
+                provider.assessmentsThisMonth.toString(),
+                Icons.calendar_today,
+                AppTheme.successColor,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildStatCard('High Risk', provider.highRiskPatients.toString(), Icons.warning, AppTheme.warningColor)),
+            Expanded(
+              child: _buildStatCard(
+                'High Risk',
+                provider.highRiskPatients.toString(),
+                Icons.warning,
+                AppTheme.warningColor,
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -249,7 +282,8 @@ class AnalyticsScreen extends StatelessWidget {
     };
 
     for (final assessment in assessments) {
-      riskCounts[assessment.riskLevel] = (riskCounts[assessment.riskLevel] ?? 0) + 1;
+      riskCounts[assessment.riskLevel] =
+          (riskCounts[assessment.riskLevel] ?? 0) + 1;
     }
 
     return Card(
@@ -264,7 +298,8 @@ class AnalyticsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ...riskCounts.entries.where((e) => e.value > 0).map((entry) {
-              final percentage = (entry.value / assessments.length * 100).toInt();
+              final percentage = (entry.value / assessments.length * 100)
+                  .toInt();
               final color = AppTheme.getRiskColorFromLevel(entry.key);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -325,9 +360,7 @@ class AnalyticsScreen extends StatelessWidget {
   }
 
   List<BarChartGroupData> _generateBarGroups() {
-    final now = DateTime.now();
     return List.generate(6, (index) {
-      final month = DateTime(now.year, now.month - (5 - index), 1);
       return BarChartGroupData(
         x: index,
         barRods: [
@@ -347,7 +380,11 @@ class AnalyticsScreen extends StatelessWidget {
 
   Widget _buildHighRiskList(PatientProvider provider) {
     final highRiskAssessments = provider.assessments
-        .where((a) => a.riskLevel == RiskLevel.severe || a.riskLevel == RiskLevel.critical)
+        .where(
+          (a) =>
+              a.riskLevel == RiskLevel.severe ||
+              a.riskLevel == RiskLevel.critical,
+        )
         .toList();
 
     if (highRiskAssessments.isEmpty) {
@@ -357,7 +394,11 @@ class AnalyticsScreen extends StatelessWidget {
           child: Center(
             child: Column(
               children: [
-                Icon(Icons.check_circle, color: AppTheme.successColor, size: 48),
+                Icon(
+                  Icons.check_circle,
+                  color: AppTheme.successColor,
+                  size: 48,
+                ),
                 SizedBox(height: 12),
                 Text('No high-risk patients'),
               ],
@@ -390,7 +431,11 @@ class AnalyticsScreen extends StatelessWidget {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppTheme.errorColor.withOpacity(0.2),
-                  child: const Icon(Icons.warning, color: AppTheme.errorColor, size: 18),
+                  child: const Icon(
+                    Icons.warning,
+                    color: AppTheme.errorColor,
+                    size: 18,
+                  ),
                 ),
                 title: Text(patient.name),
                 subtitle: Text(
@@ -409,8 +454,8 @@ class AnalyticsScreen extends StatelessWidget {
   }
 
   void _exportData(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Export feature coming soon')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Export feature coming soon')));
   }
 }

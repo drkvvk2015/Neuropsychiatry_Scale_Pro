@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../core/providers/scale_provider.dart';
 import '../core/providers/patient_provider.dart';
+import '../core/models/scale_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/models/patient_model.dart';
 import '../core/services/voice_service.dart';
@@ -25,7 +26,6 @@ class AssessmentScreen extends StatefulWidget {
 class _AssessmentScreenState extends State<AssessmentScreen> {
   final VoiceService _voiceService = VoiceService();
   bool _isListening = false;
-  int? _currentItemIndex;
 
   @override
   void initState() {
@@ -44,11 +44,9 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     return Consumer2<ScaleProvider, PatientProvider>(
       builder: (context, scaleProvider, patientProvider, child) {
         final definition = scaleProvider.currentScaleDefinition;
-        
+
         if (definition == null) {
-          return const Scaffold(
-            body: Center(child: Text('No scale selected')),
-          );
+          return const Scaffold(body: Center(child: Text('No scale selected')));
         }
 
         return PopScope(
@@ -72,7 +70,8 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
               ),
               leading: IconButton(
                 icon: const Icon(Icons.close),
-                onPressed: () => _showCancelConfirmation(context, scaleProvider),
+                onPressed: () =>
+                    _showCancelConfirmation(context, scaleProvider),
               ),
               actions: [
                 if (widget.isICUMode)
@@ -89,12 +88,13 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
             body: Column(
               children: [
                 // Progress indicator
-                if (!widget.isICUMode) _buildProgressIndicator(scaleProvider, definition),
-                
+                if (!widget.isICUMode)
+                  _buildProgressIndicator(scaleProvider, definition),
+
                 // Score summary (ICU mode always shows this)
                 if (widget.isICUMode || scaleProvider.currentScores.isNotEmpty)
                   _buildScoreSummary(scaleProvider, definition),
-                
+
                 // Items list
                 Expanded(
                   child: widget.isICUMode
@@ -110,7 +110,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     );
   }
 
-  Widget _buildProgressIndicator(ScaleProvider provider, definition) {
+  Widget _buildProgressIndicator(
+    ScaleProvider provider,
+    ScaleDefinition definition,
+  ) {
     final totalItems = definition.items.length;
     final completedItems = provider.currentScores.length;
     final progress = totalItems > 0 ? completedItems / totalItems : 0.0;
@@ -130,18 +133,21 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     );
   }
 
-  Widget _buildScoreSummary(ScaleProvider provider, definition) {
+  Widget _buildScoreSummary(
+    ScaleProvider provider,
+    ScaleDefinition definition,
+  ) {
     final totalScore = provider.currentTotalScore;
     final severity = provider.currentSeverityLevel;
-    final riskColor = severity != null ? AppTheme.getRiskColorFromLevel(severity.riskLevel) : AppTheme.primaryColor;
+    final riskColor = severity != null
+        ? AppTheme.getRiskColorFromLevel(severity.riskLevel)
+        : AppTheme.primaryColor;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: riskColor.withOpacity(0.1),
-        border: Border(
-          bottom: BorderSide(color: riskColor.withOpacity(0.3)),
-        ),
+        border: Border(bottom: BorderSide(color: riskColor.withOpacity(0.3))),
       ),
       child: Row(
         children: [
@@ -151,7 +157,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
               children: [
                 Text(
                   'Current Score',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
                 Text(
                   '$totalScore / ${definition.maxScore}',
@@ -173,7 +182,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
               ),
               child: Text(
                 severity.name,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
         ],
@@ -181,7 +193,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     );
   }
 
-  Widget _buildStandardList(ScaleProvider provider, definition) {
+  Widget _buildStandardList(
+    ScaleProvider provider,
+    ScaleDefinition definition,
+  ) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: definition.items.length,
@@ -224,7 +239,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
                       ),
                     ),
                     if (isCompleted)
-                      const Icon(Icons.check_circle, color: AppTheme.successColor),
+                      const Icon(
+                        Icons.check_circle,
+                        color: AppTheme.successColor,
+                      ),
                   ],
                 ),
                 if (item.description != null)
@@ -267,7 +285,7 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     );
   }
 
-  Widget _buildICUModeList(ScaleProvider provider, definition) {
+  Widget _buildICUModeList(ScaleProvider provider, ScaleDefinition definition) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: definition.items.length,
@@ -285,7 +303,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
             subtitle: Text(
               'Score: ${currentScore ?? '-'}',
               style: TextStyle(
-                color: AppTheme.getRiskColor((currentScore ?? 0).toDouble(), item.maxScore.toDouble()),
+                color: AppTheme.getRiskColor(
+                  (currentScore ?? 0).toDouble(),
+                  item.maxScore.toDouble(),
+                ),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -298,7 +319,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
                   margin: const EdgeInsets.only(left: 4),
                   child: Material(
                     color: isSelected
-                        ? AppTheme.getRiskColor(scoreValue.toDouble(), item.maxScore.toDouble())
+                        ? AppTheme.getRiskColor(
+                            scoreValue.toDouble(),
+                            item.maxScore.toDouble(),
+                          )
                         : AppTheme.textHint,
                     borderRadius: BorderRadius.circular(8),
                     child: InkWell(
@@ -311,7 +335,9 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
                         child: Text(
                           '$scoreValue',
                           style: TextStyle(
-                            color: isSelected ? Colors.white : AppTheme.textSecondary,
+                            color: isSelected
+                                ? Colors.white
+                                : AppTheme.textSecondary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -329,7 +355,8 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
 
   Widget _buildBottomBar(BuildContext context, ScaleProvider provider) {
     final definition = provider.currentScaleDefinition;
-    final allCompleted = definition != null &&
+    final allCompleted =
+        definition != null &&
         provider.currentScores.length == definition.items.length;
 
     return Container(
@@ -351,7 +378,9 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
               IconButton(
                 icon: const Icon(Icons.mic),
                 onPressed: _toggleVoiceInput,
-                color: _isListening ? AppTheme.errorColor : AppTheme.primaryColor,
+                color: _isListening
+                    ? AppTheme.errorColor
+                    : AppTheme.primaryColor,
               ),
             const SizedBox(width: 8),
             Expanded(
@@ -370,7 +399,7 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
 
   Future<void> _toggleVoiceInput() async {
     setState(() => _isListening = !_isListening);
-    
+
     if (_isListening) {
       // Start voice listening
       _voiceService.startListening(
@@ -391,7 +420,9 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel Assessment'),
-        content: const Text('Are you sure you want to cancel? Progress will be lost.'),
+        content: const Text(
+          'Are you sure you want to cancel? Progress will be lost.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -411,13 +442,16 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     );
   }
 
-  Future<void> _completeAssessment(BuildContext context, ScaleProvider provider) async {
+  Future<void> _completeAssessment(
+    BuildContext context,
+    ScaleProvider provider,
+  ) async {
     final assessment = await provider.completeAssessment(widget.patient.id);
-    
+
     if (assessment != null && context.mounted) {
       // Generate AI summary
       await provider.generateAISummary(assessment, widget.patient.diagnosis);
-      
+
       if (context.mounted) {
         Navigator.pushReplacement(
           context,
@@ -432,7 +466,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(provider.lastError ?? 'Unable to complete assessment. Please try again.'),
+          content: Text(
+            provider.lastError ??
+                'Unable to complete assessment. Please try again.',
+          ),
           backgroundColor: AppTheme.errorColor,
         ),
       );
