@@ -9,7 +9,7 @@ Subject: Commercial Licensing Request - PHQ-9 in NeuroScale Pro (drkvvk2015)
 
 Hello Licensing Team,
 
-I am [Your Name], founder at drkvvk2015, a startup developing NeuroScale Pro, a psychiatry clinical support app.
+I am Dr.S.Vijayakumar, founder at drkvvk2015, a startup developing NeuroScale Pro, a psychiatry clinical support app.
 
 We request permission to use PHQ-9 in our software for clinician workflows.
 
@@ -34,7 +34,7 @@ Please share:
 5. Any additional compliance requirements
 
 Thank you,
-[Your Name]
+Dr.S.Vijayakumar
 Founder, drkvvk2015
 drkvvk2015@gmail.com | +919894282165
 
@@ -45,7 +45,7 @@ Subject: Commercial Licensing Request - GAD-7 in NeuroScale Pro (drkvvk2015)
 
 Hello Licensing Team,
 
-I am [Your Name], founder at drkvvk2015. We are building NeuroScale Pro, a psychiatry clinical support application for healthcare use.
+I am Dr.S.Vijayakumar, founder at drkvvk2015. We are building NeuroScale Pro, a psychiatry clinical support application for healthcare use.
 
 We request licensing terms for GAD-7 for commercial software deployment.
 
@@ -63,7 +63,7 @@ Please confirm:
 5. Any restrictions by geography or user count
 
 Regards,
-[Your Name]
+Dr.S.Vijayakumar
 Founder, drkvvk2015
 drkvvk2015@gmail.com | +919894282165
 
@@ -74,7 +74,7 @@ Subject: Licensing and Use Approval Request - C-SSRS in NeuroScale Pro
 
 Hello Columbia Lighthouse Project Team,
 
-I am [Your Name], founder of drkvvk2015. We are developing NeuroScale Pro for psychiatry clinical support and risk-oriented follow-up.
+I am Dr.S.Vijayakumar, founder of drkvvk2015. We are developing NeuroScale Pro for psychiatry clinical support and risk-oriented follow-up.
 
 We would like authorization for C-SSRS use in our app.
 
@@ -92,7 +92,7 @@ Please confirm:
 5. Contract and fee terms (if applicable)
 
 Thanks in advance,
-[Your Name]
+Dr.S.Vijayakumar
 Founder, drkvvk2015
 drkvvk2015@gmail.com | +919894282165
 
@@ -103,7 +103,7 @@ Subject: Licensing Inquiry - HADS for NeuroScale Pro (drkvvk2015)
 
 Hello Team,
 
-I am [Your Name], founder at drkvvk2015. We are building NeuroScale Pro, a startup product for structured psychiatric assessments.
+I am Dr.S.Vijayakumar, founder at drkvvk2015. We are building NeuroScale Pro, a startup product for structured psychiatric assessments.
 
 We request licensing for Hospital Anxiety and Depression Scale (HADS) in a commercial mobile app.
 
@@ -121,7 +121,7 @@ Please provide:
 5. Any translation/localization restrictions
 
 Best regards,
-[Your Name]
+Dr.S.Vijayakumar
 Founder, drkvvk2015
 drkvvk2015@gmail.com | +919894282165
 
@@ -132,7 +132,7 @@ Subject: Licensing Request - EPDS in NeuroScale Pro (drkvvk2015)
 
 Hello Team,
 
-I am [Your Name], founder at drkvvk2015. We are developing NeuroScale Pro for clinical screening workflows.
+I am Dr.S.Vijayakumar, founder at drkvvk2015. We are developing NeuroScale Pro for clinical screening workflows.
 
 We request permission to include EPDS in our commercial application.
 
@@ -150,6 +150,6 @@ Please confirm:
 5. Licensing fee and renewal terms
 
 Thank you,
-[Your Name]
+Dr.S.Vijayakumar
 Founder, drkvvk2015
 drkvvk2015@gmail.com | +919894282165

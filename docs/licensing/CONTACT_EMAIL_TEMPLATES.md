@@ -12,7 +12,7 @@ Subject: Licensing Request for [Scale Name] in NeuroScale Pro (drkvvk2015)
 
 Hello [Rights Holder Team/Name],
 
-I am [Your Name], founder/developer at drkvvk2015 (startup). We are developing NeuroScale Pro, a psychiatry clinical support application for healthcare workflows.
+I am Dr.S.Vijayakumar, founder/developer at drkvvk2015 (startup). We are developing NeuroScale Pro, a psychiatry clinical support application for healthcare workflows.
 
 We would like permission to use [Scale Name] in our software product and request your licensing terms.
 
@@ -34,10 +34,10 @@ Please share:
 If easier, we are happy to sign an NDA before discussing details.
 
 Thank you,
-[Your Name]
+Dr.S.Vijayakumar
 Founder, drkvvk2015
-[Phone]
-[Email]
++919894282165
+drkvvk2015@gmail.com
 
 ## 2) Follow-Up (7-10 Days)
 
@@ -55,7 +55,7 @@ Could you please confirm:
 Thank you for your help.
 
 Regards,
-[Your Name]
+Dr.S.Vijayakumar
 
 ## 3) Clarification Request (If Terms Are Unclear)
 
@@ -75,7 +75,7 @@ Thank you for sharing terms. To ensure compliance, could you confirm the followi
 We will implement exactly according to your written response.
 
 Best,
-[Your Name]
+Dr.S.Vijayakumar
 
 ## 4) Approval Confirmation Record
 
@@ -96,4 +96,4 @@ Attribution to display:
 [Paste exact required text]
 
 Thanks again,
-[Your Name]
+Dr.S.Vijayakumar
