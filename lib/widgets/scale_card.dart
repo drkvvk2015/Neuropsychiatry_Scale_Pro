@@ -72,7 +72,9 @@ class ScaleCard extends StatelessWidget {
                         )),
                     if (hasScore)
                       Text(
-                        'Score: $score / $maxScore',
+                        maxScore > 0
+                            ? 'Score: $score / $maxScore'
+                            : 'Score: $score',
                         style: TextStyle(
                           color: Colors.grey.shade600,
                           fontSize: 13,

@@ -34,7 +34,11 @@ class AiEngine {
     for (final result in results) {
       buffer.writeln(
           '  • ${result.scaleName}: ${result.totalScore} → ${result.severity}');
-      severities.add(result.severity);
+      // Exclude C-SSRS from general severity list: its severity field holds a
+      // risk label (e.g. "Critical Risk") that would skew severity interpretation.
+      if (result.scaleName != AppConstants.scaleCSSRS) {
+        severities.add(result.severity);
+      }
       if (_riskRank(result.riskLevel) > _riskRank(overallRisk)) {
         overallRisk = result.riskLevel;
       }
@@ -83,8 +87,9 @@ class AiEngine {
   }
 
   static String _getRiskNarrative(String risk, List<ScaleResult> results) {
-    final cssrs =
-        results.where((r) => r.scaleName == AppConstants.scaleCSSRS).firstOrNull;
+    final cssrsResults =
+        results.where((r) => r.scaleName == AppConstants.scaleCSSRS);
+    final cssrs = cssrsResults.isNotEmpty ? cssrsResults.first : null;
 
     switch (risk) {
       case AppConstants.riskCritical:
