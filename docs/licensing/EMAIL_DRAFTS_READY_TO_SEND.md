@@ -36,7 +36,7 @@ Please share:
 Thank you,
 [Your Name]
 Founder, drkvvk2015
-[Email] | [Phone]
+drkvvk2015@gmail.com | +919894282165
 
 ## 2) GAD-7 Licensing Request
 
@@ -65,7 +65,7 @@ Please confirm:
 Regards,
 [Your Name]
 Founder, drkvvk2015
-[Email] | [Phone]
+drkvvk2015@gmail.com | +919894282165
 
 ## 3) C-SSRS Licensing Request
 
@@ -94,7 +94,7 @@ Please confirm:
 Thanks in advance,
 [Your Name]
 Founder, drkvvk2015
-[Email] | [Phone]
+drkvvk2015@gmail.com | +919894282165
 
 ## 4) HADS Licensing Request
 
@@ -123,7 +123,7 @@ Please provide:
 Best regards,
 [Your Name]
 Founder, drkvvk2015
-[Email] | [Phone]
+drkvvk2015@gmail.com | +919894282165
 
 ## 5) EPDS Licensing Request
 
@@ -152,4 +152,4 @@ Please confirm:
 Thank you,
 [Your Name]
 Founder, drkvvk2015
-[Email] | [Phone]
+drkvvk2015@gmail.com | +919894282165
