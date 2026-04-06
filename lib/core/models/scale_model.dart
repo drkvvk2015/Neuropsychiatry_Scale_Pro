@@ -3,14 +3,19 @@ import 'package:flutter/foundation.dart';
 import '../theme/app_theme.dart';
 
 enum ScaleType {
-  bprs,     // Brief Psychiatric Rating Scale (24 items)
-  phq9,     // Patient Health Questionnaire-9
-  gad7,     // Generalized Anxiety Disorder-7
-  hamd,     // Hamilton Depression Rating Scale
-  ymrs,     // Young Mania Rating Scale
-  ybocs,    // Yale-Brown Obsessive Compulsive Scale
-  mmse,     // Mini-Mental State Examination
-  cssrs,    // Columbia-Suicide Severity Rating Scale
+  bprs, // Brief Psychiatric Rating Scale (24 items)
+  phq9, // Patient Health Questionnaire-9
+  gad7, // Generalized Anxiety Disorder-7
+  hamd, // Hamilton Depression Rating Scale
+  hads, // Hospital Anxiety and Depression Scale
+  mdq, // Mood Disorder Questionnaire
+  ymrs, // Young Mania Rating Scale
+  ybocs, // Yale-Brown Obsessive Compulsive Scale
+  cows, // Clinical Opiate Withdrawal Scale
+  epds, // Edinburgh Postnatal Depression Scale
+  gds, // Geriatric Depression Scale
+  mmse, // Mini-Mental State Examination
+  cssrs, // Columbia-Suicide Severity Rating Scale
 }
 
 class ScaleDefinition {
@@ -137,14 +142,18 @@ class Assessment {
       if (map['itemScores'] is String) {
         try {
           final decoded = jsonDecode(map['itemScores']) as Map<String, dynamic>;
-          itemScores = decoded.map((key, value) => MapEntry(key, (value as num).toInt()));
+          itemScores = decoded.map(
+            (key, value) => MapEntry(key, (value as num).toInt()),
+          );
         } catch (e) {
           debugPrint('Assessment.fromMap itemScores parse error: $e');
           itemScores = {};
         }
       } else if (map['itemScores'] is Map) {
         final rawMap = Map<String, dynamic>.from(map['itemScores']);
-        itemScores = rawMap.map((key, value) => MapEntry(key, (value as num).toInt()));
+        itemScores = rawMap.map(
+          (key, value) => MapEntry(key, (value as num).toInt()),
+        );
       }
     }
 
@@ -184,7 +193,9 @@ class Assessment {
       orElse: () => RiskLevel.none,
     );
 
-    final parsedAssessedAt = DateTime.tryParse((map['assessedAt'] ?? '').toString()) ?? DateTime.now();
+    final parsedAssessedAt =
+        DateTime.tryParse((map['assessedAt'] ?? '').toString()) ??
+        DateTime.now();
 
     return Assessment(
       id: (map['id'] ?? '').toString(),

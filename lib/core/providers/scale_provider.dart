@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 
 class ScaleProvider with ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
-  
+
   ScaleType? _selectedScaleType;
   Map<String, int> _currentScores = {};
   Assessment? _currentAssessment;
@@ -118,8 +118,35 @@ class ScaleProvider with ChangeNotifier {
       }
     }
 
+    if (_selectedScaleType == ScaleType.mdq) {
+      final symptomCount = _currentScores.entries
+          .where(
+            (entry) =>
+                entry.key.startsWith('mdq_') &&
+                entry.key != 'mdq_same_period' &&
+                entry.key != 'mdq_impairment',
+          )
+          .fold<int>(0, (sum, entry) => sum + entry.value);
+      final samePeriod = _currentScores['mdq_same_period'] ?? 0;
+      final impairment = _currentScores['mdq_impairment'] ?? 0;
+
+      if (symptomCount >= 7 && samePeriod == 1 && impairment >= 2) {
+        alerts.add(
+          'MDQ screen positive pattern detected - bipolar diagnostic interview recommended',
+        );
+      }
+    }
+
+    if (_selectedScaleType == ScaleType.cows && currentTotalScore >= 25) {
+      alerts.add(
+        'Moderately severe to severe opioid withdrawal - urgent treatment protocol advised',
+      );
+    }
+
     if (risk == RiskLevel.critical) {
-      alerts.add('Critical severity level - immediate intervention recommended');
+      alerts.add(
+        'Critical severity level - immediate intervention recommended',
+      );
     }
 
     final assessment = Assessment(
@@ -150,7 +177,10 @@ class ScaleProvider with ChangeNotifier {
     return assessment;
   }
 
-  Future<void> generateAISummary(Assessment assessment, String? diagnosis) async {
+  Future<void> generateAISummary(
+    Assessment assessment,
+    String? diagnosis,
+  ) async {
     _isLoading = true;
     notifyListeners();
 
@@ -177,7 +207,9 @@ class ScaleProvider with ChangeNotifier {
     summary.writeln('**Clinical Summary**');
     summary.writeln();
     summary.writeln('**Scale:** ${definition?.name}');
-    summary.writeln('**Total Score:** ${assessment.totalScore} / ${definition?.maxScore}');
+    summary.writeln(
+      '**Total Score:** ${assessment.totalScore} / ${definition?.maxScore}',
+    );
     summary.writeln('**Severity:** ${severity.name}');
     summary.writeln('**Risk Level:** ${risk.name.toUpperCase()}');
     summary.writeln();
@@ -197,38 +229,89 @@ class ScaleProvider with ChangeNotifier {
         summary.writeln('**Depression Screening Results:**');
         final item9Score = assessment.itemScores['phq9_9'] ?? 0;
         if (item9Score > 0) {
-          summary.writeln('⚠️ **ALERT:** Patient endorses suicidal ideation. Immediate risk assessment required.');
+          summary.writeln(
+            '⚠️ **ALERT:** Patient endorses suicidal ideation. Immediate risk assessment required.',
+          );
         }
-        summary.writeln('Recommend ${severity.riskLevel == RiskLevel.none || severity.riskLevel == RiskLevel.mild ? 'monitoring and follow-up' : 'active treatment intervention'}.');
+        summary.writeln(
+          'Recommend ${severity.riskLevel == RiskLevel.none || severity.riskLevel == RiskLevel.mild ? 'monitoring and follow-up' : 'active treatment intervention'}.',
+        );
         break;
 
       case ScaleType.gad7:
         summary.writeln('**Anxiety Screening Results:**');
-        summary.writeln('Recommend ${severity.riskLevel == RiskLevel.none || severity.riskLevel == RiskLevel.mild ? 'monitoring' : 'anxiety management intervention'}.');
+        summary.writeln(
+          'Recommend ${severity.riskLevel == RiskLevel.none || severity.riskLevel == RiskLevel.mild ? 'monitoring' : 'anxiety management intervention'}.',
+        );
+        break;
+
+      case ScaleType.hads:
+        summary.writeln('**Hospital Anxiety and Depression Screen:**');
+        summary.writeln(
+          'Review anxiety and depression subscale details when available and plan follow-up accordingly.',
+        );
+        break;
+
+      case ScaleType.mdq:
+        summary.writeln('**Bipolar Screening Results:**');
+        summary.writeln(
+          'Positive MDQ patterns require structured diagnostic interview to confirm bipolar spectrum disorder.',
+        );
         break;
 
       case ScaleType.bprs:
         summary.writeln('**Comprehensive Psychiatric Assessment:**');
-        summary.writeln('Consider ${risk == RiskLevel.critical ? 'immediate psychiatric consultation' : 'ongoing psychiatric management'}.');
+        summary.writeln(
+          'Consider ${risk == RiskLevel.critical ? 'immediate psychiatric consultation' : 'ongoing psychiatric management'}.',
+        );
+        break;
+
+      case ScaleType.cows:
+        summary.writeln('**Opioid Withdrawal Assessment:**');
+        summary.writeln(
+          'Use score with withdrawal protocol and consider medication-assisted treatment pathway.',
+        );
+        break;
+
+      case ScaleType.epds:
+        summary.writeln('**Postnatal Depression Screening:**');
+        summary.writeln(
+          'Coordinate obstetric and psychiatric follow-up when symptoms are elevated.',
+        );
+        break;
+
+      case ScaleType.gds:
+        summary.writeln('**Geriatric Depression Screening:**');
+        summary.writeln(
+          'Interpret with geriatric context, medical comorbidity, and cognitive status.',
+        );
         break;
 
       case ScaleType.cssrs:
         if (assessment.hasSuicideRisk) {
           summary.writeln('🚨 **SUICIDE RISK ALERT**');
-          summary.writeln('Immediate safety planning and risk mitigation required.');
-          summary.writeln('Consider hospitalization if risk cannot be managed outpatient.');
+          summary.writeln(
+            'Immediate safety planning and risk mitigation required.',
+          );
+          summary.writeln(
+            'Consider hospitalization if risk cannot be managed outpatient.',
+          );
         }
         break;
 
       case ScaleType.mmse:
         summary.writeln('**Cognitive Assessment:**');
         if (severity.riskLevel == RiskLevel.severe) {
-          summary.writeln('Significant cognitive impairment detected. Consider neurology referral and further workup.');
+          summary.writeln(
+            'Significant cognitive impairment detected. Consider neurology referral and further workup.',
+          );
         }
         break;
 
       default:
-        summary.writeln('Review clinical findings and consider appropriate intervention based on severity.');
+        summary.writeln(
+          'Review clinical findings and consider appropriate intervention based on severity.',
+        );
     }
 
     if (assessment.alerts.isNotEmpty) {
@@ -240,15 +323,18 @@ class ScaleProvider with ChangeNotifier {
     }
 
     summary.writeln();
-    summary.writeln('**Note:** This AI-generated summary is for clinical support only and should not replace professional judgment.');
+    summary.writeln(
+      '**Note:** This AI-generated summary is for clinical support only and should not replace professional judgment.',
+    );
 
     return summary.toString();
   }
 
-  List<Assessment> getPatientHistory(String patientId, List<Assessment> allAssessments) {
-    return allAssessments
-        .where((a) => a.patientId == patientId)
-        .toList()
+  List<Assessment> getPatientHistory(
+    String patientId,
+    List<Assessment> allAssessments,
+  ) {
+    return allAssessments.where((a) => a.patientId == patientId).toList()
       ..sort((a, b) => b.assessedAt.compareTo(a.assessedAt));
   }
 }
