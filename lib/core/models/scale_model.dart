@@ -143,7 +143,8 @@ class Assessment {
           itemScores = {};
         }
       } else if (map['itemScores'] is Map) {
-        itemScores = Map<String, int>.from(map['itemScores']);
+        final rawMap = Map<String, dynamic>.from(map['itemScores']);
+        itemScores = rawMap.map((key, value) => MapEntry(key, (value as num).toInt()));
       }
     }
 
@@ -173,27 +174,33 @@ class Assessment {
       }
     }
 
+    final parsedScaleType = ScaleType.values.firstWhere(
+      (e) => e.name == map['scaleType'],
+      orElse: () => ScaleType.phq9,
+    );
+
+    final parsedRiskLevel = RiskLevel.values.firstWhere(
+      (e) => e.name == map['riskLevel'],
+      orElse: () => RiskLevel.none,
+    );
+
+    final parsedAssessedAt = DateTime.tryParse((map['assessedAt'] ?? '').toString()) ?? DateTime.now();
+
     return Assessment(
-      id: map['id'],
-      patientId: map['patientId'],
-      scaleType: ScaleType.values.firstWhere((e) => e.name == map['scaleType']),
+      id: (map['id'] ?? '').toString(),
+      patientId: (map['patientId'] ?? '').toString(),
+      scaleType: parsedScaleType,
       itemScores: itemScores,
-      totalScore: map['totalScore'],
+      totalScore: (map['totalScore'] as num?)?.toDouble() ?? 0,
       severityLevel: SeverityLevel(
-        name: map['severityLevel'],
+        name: (map['severityLevel'] ?? 'Unknown').toString(),
         minScore: 0,
         maxScore: 100,
         description: '',
-        riskLevel: RiskLevel.values.firstWhere(
-          (e) => e.name == map['riskLevel'],
-          orElse: () => RiskLevel.none,
-        ),
+        riskLevel: parsedRiskLevel,
       ),
-      riskLevel: RiskLevel.values.firstWhere(
-        (e) => e.name == map['riskLevel'],
-        orElse: () => RiskLevel.none,
-      ),
-      assessedAt: DateTime.parse(map['assessedAt']),
+      riskLevel: parsedRiskLevel,
+      assessedAt: parsedAssessedAt,
       notes: map['notes'],
       aiSummary: map['aiSummary'],
       hasSuicideRisk: hasSuicideRisk,

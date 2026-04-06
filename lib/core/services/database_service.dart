@@ -26,9 +26,53 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+      onOpen: (db) async {
+        // Keep schema compatible with older app builds that may have missed migrations.
+        await db.execute('PRAGMA foreign_keys = ON');
+        await _ensurePatientsColumns(db);
+        await _ensureAssessmentsColumns(db);
+      },
     );
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _ensurePatientsColumns(db);
+      await _ensureAssessmentsColumns(db);
+    }
+  }
+
+  Future<void> _ensurePatientsColumns(Database db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(patients)');
+    final names = columns.map((c) => c['name'] as String).toSet();
+
+    if (!names.contains('updatedAt')) {
+      await db.execute('ALTER TABLE patients ADD COLUMN updatedAt TEXT');
+    }
+    if (!names.contains('photoUrl')) {
+      await db.execute('ALTER TABLE patients ADD COLUMN photoUrl TEXT');
+    }
+  }
+
+  Future<void> _ensureAssessmentsColumns(Database db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(assessments)');
+    final names = columns.map((c) => c['name'] as String).toSet();
+
+    if (!names.contains('notes')) {
+      await db.execute('ALTER TABLE assessments ADD COLUMN notes TEXT');
+    }
+    if (!names.contains('aiSummary')) {
+      await db.execute('ALTER TABLE assessments ADD COLUMN aiSummary TEXT');
+    }
+    if (!names.contains('hasSuicideRisk')) {
+      await db.execute('ALTER TABLE assessments ADD COLUMN hasSuicideRisk INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!names.contains('alerts')) {
+      await db.execute('ALTER TABLE assessments ADD COLUMN alerts TEXT');
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -36,7 +80,6 @@ class DatabaseService {
     const textType = 'TEXT NOT NULL';
     const textTypeNullable = 'TEXT';
     const intType = 'INTEGER NOT NULL';
-    const intTypeNullable = 'INTEGER';
     const realType = 'REAL NOT NULL';
     const boolType = 'INTEGER NOT NULL';
 

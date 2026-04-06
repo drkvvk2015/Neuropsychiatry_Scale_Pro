@@ -273,7 +273,7 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
       itemCount: definition.items.length,
       itemBuilder: (context, index) {
         final item = definition.items[index];
-        final currentScore = provider.currentScores[item.id] ?? 0;
+        final currentScore = provider.currentScores[item.id];
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
@@ -283,32 +283,33 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             subtitle: Text(
-              'Score: $currentScore',
+              'Score: ${currentScore ?? '-'}',
               style: TextStyle(
-                color: AppTheme.getRiskColor(currentScore.toDouble(), item.maxScore.toDouble()),
+                color: AppTheme.getRiskColor((currentScore ?? 0).toDouble(), item.maxScore.toDouble()),
                 fontWeight: FontWeight.bold,
               ),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
-              children: List.generate(item.maxScore + 1, (scoreIndex) {
-                final isSelected = currentScore == scoreIndex;
+              children: item.options.map((option) {
+                final scoreValue = option.value;
+                final isSelected = currentScore == scoreValue;
                 return Container(
                   margin: const EdgeInsets.only(left: 4),
                   child: Material(
                     color: isSelected
-                        ? AppTheme.getRiskColor(scoreIndex.toDouble(), item.maxScore.toDouble())
+                        ? AppTheme.getRiskColor(scoreValue.toDouble(), item.maxScore.toDouble())
                         : AppTheme.textHint,
                     borderRadius: BorderRadius.circular(8),
                     child: InkWell(
-                      onTap: () => provider.setItemScore(item.id, scoreIndex),
+                      onTap: () => provider.setItemScore(item.id, scoreValue),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
                         width: 36,
                         height: 36,
                         alignment: Alignment.center,
                         child: Text(
-                          '$scoreIndex',
+                          '$scoreValue',
                           style: TextStyle(
                             color: isSelected ? Colors.white : AppTheme.textSecondary,
                             fontWeight: FontWeight.bold,
@@ -318,7 +319,7 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
                     ),
                   ),
                 );
-              }),
+              }).toList(),
             ),
           ),
         );
