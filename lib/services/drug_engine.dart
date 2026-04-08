@@ -32,7 +32,9 @@ class DrugEngine {
     if (diag.contains('bipolar') || diag.contains('mania')) {
       return _bipolarSuggestion(severity);
     }
-    if (diag.contains('depression') || diag.contains('mdd')) {
+    if (diag.contains('depression') ||
+        diag.contains('depressive') ||
+        diag.contains('mdd')) {
       return _depressionSuggestion(severity);
     }
     if (diag.contains('anxiety') || diag.contains('gad')) {
@@ -84,7 +86,7 @@ class DrugEngine {
   }
 
   static DrugSuggestion _bipolarSuggestion(String severity) {
-    return DrugSuggestion(
+    return const DrugSuggestion(
       diagnosis: 'Bipolar Disorder / Mania',
       firstLine: [
         'Lithium 600–1800 mg/day (target serum 0.8–1.2 mEq/L)',
@@ -137,7 +139,7 @@ class DrugEngine {
   }
 
   static DrugSuggestion _anxietySuggestion(String severity) {
-    return DrugSuggestion(
+    return const DrugSuggestion(
       diagnosis: 'Generalized Anxiety Disorder',
       firstLine: [
         'Escitalopram 10–20 mg/day',
@@ -159,7 +161,7 @@ class DrugEngine {
   }
 
   static DrugSuggestion _ocdSuggestion(String severity) {
-    return DrugSuggestion(
+    return const DrugSuggestion(
       diagnosis: 'Obsessive-Compulsive Disorder',
       firstLine: [
         'Fluoxetine 40–80 mg/day',
@@ -181,7 +183,7 @@ class DrugEngine {
   }
 
   static DrugSuggestion _dementiaSuggestion(String severity) {
-    return DrugSuggestion(
+    return const DrugSuggestion(
       diagnosis: 'Dementia / Cognitive Impairment',
       firstLine: [
         'Donepezil 5–10 mg/day (all stages)',
@@ -204,7 +206,7 @@ class DrugEngine {
   }
 
   static DrugSuggestion _ptsdSuggestion(String severity) {
-    return DrugSuggestion(
+    return const DrugSuggestion(
       diagnosis: 'PTSD / Trauma-Related Disorder',
       firstLine: [
         'Sertraline 50–200 mg/day',
@@ -225,7 +227,7 @@ class DrugEngine {
   }
 
   static DrugSuggestion _adhdSuggestion(String severity) {
-    return DrugSuggestion(
+    return const DrugSuggestion(
       diagnosis: 'ADHD / Attention Deficit Disorder',
       firstLine: [
         'Methylphenidate 10–60 mg/day (children & adults)',

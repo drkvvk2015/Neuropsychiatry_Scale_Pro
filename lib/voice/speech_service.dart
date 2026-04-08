@@ -1,7 +1,13 @@
-/// Voice/Speech service interface.
-/// Provides offline speech recognition using Vosk (Tamil + English).
-/// In production, integrate with vosk_flutter package.
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import '../services/model_storage_service.dart';
+
 class SpeechService {
+  final SpeechToText _stt = SpeechToText();
+  bool _initialized = false;
   bool _isListening = false;
   String _language = 'en';
   String _lastTranscript = '';
@@ -14,22 +20,61 @@ class SpeechService {
     _language = lang;
   }
 
+  Future<bool> _ensureInitialized() async {
+    if (_initialized) return true;
+    if (!kIsWeb) {
+      final micStatus = await Permission.microphone.request();
+      if (!micStatus.isGranted) return false;
+      // iOS requires a separate speech recognition permission
+      if (!kIsWeb && Platform.isIOS) {
+        final speechStatus = await Permission.speech.request();
+        if (!speechStatus.isGranted) return false;
+      }
+    }
+    _initialized = await _stt.initialize(
+      onError: (error) => debugPrint('STT error: ${error.errorMsg}'),
+    );
+    return _initialized;
+  }
+
   /// Start listening for speech input.
-  /// In production, initializes the Vosk model and starts recognition.
   Future<void> startListening({
     required Function(String transcript) onResult,
     Function(String error)? onError,
   }) async {
+    final ready = await _ensureInitialized();
+    if (!ready) {
+      onError?.call('Microphone permission denied or STT unavailable');
+      return;
+    }
+
     _isListening = true;
-    // Stub: in production, connect to Vosk offline ASR engine
-    // vosk_flutter would call onResult with recognized text
     _lastTranscript = '';
-    onResult('');
+
+    // Map language code to locale ID used by speech_to_text
+    final localeId = _language == 'ta' ? 'ta_IN' : 'en_US';
+
+    await _stt.listen(
+      onResult: (result) {
+        if (result.recognizedWords.isNotEmpty) {
+          _lastTranscript = result.recognizedWords;
+          onResult(_lastTranscript);
+        }
+      },
+      localeId: localeId,
+      listenFor: const Duration(seconds: 10),
+      pauseFor: const Duration(seconds: 3),
+      listenOptions: SpeechListenOptions(
+        cancelOnError: false,
+        partialResults: false,
+      ),
+    );
   }
 
   /// Stop listening.
   Future<void> stopListening() async {
     _isListening = false;
+    await _stt.stop();
   }
 
   /// Parse a spoken score from transcript (e.g., "three" → 3).
@@ -47,8 +92,6 @@ class SpeechService {
   }
 
   /// Available language models.
-  static List<Map<String, String>> get availableLanguages => [
-        {'code': 'en', 'name': 'English', 'path': 'assets/models/en'},
-        {'code': 'ta', 'name': 'Tamil', 'path': 'assets/models/ta'},
-      ];
+  static List<Map<String, String>> get availableLanguages =>
+      [...ModelStorageService.supportedLanguages];
 }

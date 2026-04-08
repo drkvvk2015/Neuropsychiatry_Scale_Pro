@@ -3,9 +3,13 @@ import '../services/database_service.dart';
 import '../models/patient.dart';
 import '../models/scale_result.dart';
 import '../core/constants.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_ext.dart';
 import '../widgets/alert_banner.dart';
+import '../voice/model_manager_sheet.dart';
 import 'patient_screen.dart';
+import 'privacy_notice.dart';
 
 /// Main dashboard showing patient list and ward overview.
 class DashboardScreen extends StatefulWidget {
@@ -26,22 +30,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadPatients();
+    _showPrivacyIfNeeded();
+  }
+
+  Future<void> _showPrivacyIfNeeded() async {
+    // Defer until first frame so context is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) await showPrivacyNoticeIfNeeded(context);
+    });
   }
 
   Future<void> _loadPatients() async {
     setState(() => _loading = true);
-    final patients = await _db.getAllPatients();
-    final resultsMap = <String, ScaleResult?>{};
-    for (final p in patients) {
-      final results = await _db.getResultsForPatient(p.id);
-      resultsMap[p.id] = results.isNotEmpty ? results.first : null;
-    }
-    if (mounted) {
-      setState(() {
-        _patients = patients;
-        _latestResults = resultsMap;
-        _loading = false;
-      });
+    try {
+      final patients = await _db.getAllPatients();
+      final resultsMap = <String, ScaleResult?>{};
+      for (final p in patients) {
+        final results = await _db.getResultsForPatient(p.id);
+        resultsMap[p.id] = results.isNotEmpty ? results.first : null;
+      }
+      if (mounted) {
+        setState(() {
+          _patients = patients;
+          _latestResults = resultsMap;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading patients: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -66,33 +87,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizationsExt.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppConstants.appName),
+        title: Text(l10n.dashboardTitle),
         actions: [
           IconButton(
+            icon: const Icon(Icons.memory),
+            tooltip: l10n.modelManager,
+            onPressed: () => showModelManagerSheet(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.analytics),
-            tooltip: 'Analytics',
+            tooltip: l10n.analytics,
             onPressed: () {
               Navigator.pushNamed(context, '/analytics').then((_) => _loadPatients());
             },
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: l10n.refresh,
             onPressed: _loadPatients,
           ),
         ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : ResponsivePage(
+              padding: EdgeInsets.zero,
+              child: Column(
               children: [
                 // Critical alert banner
                 if (_criticalCount > 0)
                   AlertBanner(
                     riskLevel: AppConstants.riskCritical,
-                    message:
-                        '$_criticalCount patient(s) require urgent attention',
+                    message: l10n.criticalPatientsBanner(_criticalCount),
                   ),
                 // Stats row
                 _buildStatsRow(),
@@ -101,7 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'Search patients...',
+                      hintText: l10n.searchPatients,
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -125,7 +154,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                 ),
               ],
-            ),
+            )),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -136,7 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
             backgroundColor: AppTheme.dangerColor,
             icon: const Icon(Icons.flash_on),
-            label: const Text('ICU Mode'),
+            label: Text(l10n.icuMode),
           ),
           const SizedBox(height: 8),
           FloatingActionButton(
@@ -150,6 +179,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatsRow() {
+    final l10n = AppLocalizationsExt.of(context);
     final total = _patients.length;
     final critical = _criticalCount;
     final assessed = _latestResults.values.where((r) => r != null).length;
@@ -158,17 +188,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
         ),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Wrap(
+        alignment: WrapAlignment.spaceAround,
+        spacing: 24,
+        runSpacing: 12,
         children: [
-          _statItem('Total', total.toString(), Icons.people),
-          _statItem('Assessed', assessed.toString(), Icons.check_circle),
-          _statItem('Urgent', critical.toString(), Icons.warning,
+          _statItem(l10n.total, total.toString(), Icons.people),
+          _statItem(l10n.assessed, assessed.toString(), Icons.check_circle),
+          _statItem(l10n.urgent, critical.toString(), Icons.warning,
               color: critical > 0 ? Colors.yellow : Colors.white),
         ],
       ),
@@ -190,6 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildPatientTile(Patient patient) {
+    final l10n = AppLocalizationsExt.of(context);
     final result = _latestResults[patient.id];
     final riskColor = result != null
         ? AppTheme.riskColor(result.riskLevel)
@@ -201,7 +234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: riskColor.withOpacity(0.2),
+          backgroundColor: riskColor.withValues(alpha: 0.2),
           child: Text(
             patient.name.isNotEmpty ? patient.name[0].toUpperCase() : '?',
             style: TextStyle(
@@ -211,7 +244,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text(patient.name,
             style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(
-          '${patient.age}Y • ${patient.gender} • ${patient.ward.isNotEmpty ? patient.ward : "OPD"}'
+          '${patient.age}Y • ${l10n.genderLabel(patient.gender)} • ${patient.ward.isNotEmpty ? patient.ward : l10n.wardFallback}'
           '${patient.diagnosis.isNotEmpty ? " • ${patient.diagnosis}" : ""}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -225,14 +258,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: riskColor.withOpacity(0.15),
+                      color: riskColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: riskColor),
                     ),
                     child: Text(
                       result.riskLevel != AppConstants.riskNone
-                          ? result.riskLevel
-                          : result.severity,
+                        ? l10n.riskLabel(result.riskLevel)
+                        : l10n.severityLabel(result.severity),
                       style: TextStyle(
                           color: riskColor,
                           fontSize: 10,
@@ -260,6 +293,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizationsExt.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -268,8 +302,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 16),
           Text(
             _searchQuery.isEmpty
-                ? 'No patients yet\nTap + to add a patient'
-                : 'No patients match "$_searchQuery"',
+                ? l10n.noPatientsYet
+                : l10n.noPatientsMatch(_searchQuery),
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
           ),
@@ -279,6 +313,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _showAddPatientDialog() async {
+    final l10n = AppLocalizationsExt.of(context);
     final nameCtrl = TextEditingController();
     final ageCtrl = TextEditingController();
     final diagCtrl = TextEditingController();
@@ -289,50 +324,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Add Patient'),
+          title: Text(l10n.addPatient),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Patient Name *',
-                    prefixIcon: Icon(Icons.person),
+                  decoration: InputDecoration(
+                    labelText: l10n.patientNameRequired,
+                    prefixIcon: const Icon(Icons.person),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: ageCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Age *',
-                    prefixIcon: Icon(Icons.cake),
+                  decoration: InputDecoration(
+                    labelText: l10n.ageRequired,
+                    prefixIcon: const Icon(Icons.cake),
                   ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: gender,
-                  decoration: const InputDecoration(labelText: 'Gender'),
-                  items: ['Male', 'Female', 'Other']
-                      .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                      .toList(),
+                  initialValue: gender,
+                  decoration: InputDecoration(labelText: l10n.gender),
+                  items: [
+                    DropdownMenuItem(value: 'Male', child: Text(l10n.male)),
+                    DropdownMenuItem(value: 'Female', child: Text(l10n.female)),
+                    DropdownMenuItem(value: 'Other', child: Text(l10n.other)),
+                  ],
                   onChanged: (v) => setDialogState(() => gender = v ?? 'Male'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: diagCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Diagnosis',
-                    prefixIcon: Icon(Icons.medical_information),
+                  decoration: InputDecoration(
+                    labelText: l10n.diagnosis,
+                    prefixIcon: const Icon(Icons.medical_information),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: wardCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Ward / Unit',
-                    prefixIcon: Icon(Icons.local_hospital),
+                  decoration: InputDecoration(
+                    labelText: l10n.wardUnit,
+                    prefixIcon: const Icon(Icons.local_hospital),
                   ),
                 ),
               ],
@@ -340,26 +377,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              onPressed: () {
+                nameCtrl.dispose();
+                ageCtrl.dispose();
+                diagCtrl.dispose();
+                wardCtrl.dispose();
+                Navigator.pop(ctx);
+              },
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () async {
-                if (nameCtrl.text.trim().isEmpty || ageCtrl.text.isEmpty) {
-                  return;
-                }
+                if (nameCtrl.text.trim().isEmpty) return;
+                final age = int.tryParse(ageCtrl.text);
+                if (age == null || age < 0 || age > 120) return;
                 final patient = Patient(
                   name: nameCtrl.text.trim(),
-                  age: int.tryParse(ageCtrl.text) ?? 0,
+                  age: age,
                   gender: gender,
                   diagnosis: diagCtrl.text.trim(),
                   ward: wardCtrl.text.trim(),
                 );
-                await _db.insertPatient(patient);
-                if (ctx.mounted) Navigator.pop(ctx);
-                _loadPatients();
+                try {
+                  await _db.insertPatient(patient);
+                  if (ctx.mounted) {
+                    nameCtrl.dispose();
+                    ageCtrl.dispose();
+                    diagCtrl.dispose();
+                    wardCtrl.dispose();
+                    Navigator.pop(ctx);
+                  }
+                  _loadPatients();
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(content: Text('Failed to save: $e')),
+                    );
+                  }
+                }
               },
-              child: const Text('Add'),
+              child: Text(l10n.addPatient),
             ),
           ],
         ),

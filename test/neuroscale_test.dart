@@ -5,6 +5,7 @@ import 'package:neuroscale_pro/services/ai_engine.dart';
 import 'package:neuroscale_pro/models/patient.dart';
 import 'package:neuroscale_pro/models/scale_result.dart';
 import 'package:neuroscale_pro/core/constants.dart';
+import 'package:neuroscale_pro/voice/speech_service.dart';
 
 void main() {
   // ── Scoring Engine Tests ─────────────────────────────────────────────────
@@ -180,6 +181,53 @@ void main() {
     test('Y-BOCS max score is 40', () {
       expect(ScoringEngine.getMaxScore(AppConstants.scaleYBOCS), 40);
     });
+
+    // YMRS severity
+    test('YMRS score <=12 → Normal', () {
+      expect(ScoringEngine.ymrsSeverity(0), AppConstants.severityNormal);
+      expect(ScoringEngine.ymrsSeverity(12), AppConstants.severityNormal);
+    });
+
+    test('YMRS score 13-19 → Mild', () {
+      expect(ScoringEngine.ymrsSeverity(13), AppConstants.severityMild);
+      expect(ScoringEngine.ymrsSeverity(19), AppConstants.severityMild);
+    });
+
+    test('YMRS score 20-29 → Moderate', () {
+      expect(ScoringEngine.ymrsSeverity(20), AppConstants.severityModerate);
+      expect(ScoringEngine.ymrsSeverity(29), AppConstants.severityModerate);
+    });
+
+    test('YMRS score 30+ → Severe', () {
+      expect(ScoringEngine.ymrsSeverity(30), AppConstants.severitySevere);
+      expect(ScoringEngine.ymrsSeverity(60), AppConstants.severitySevere);
+    });
+
+    // Y-BOCS severity
+    test('Y-BOCS score <=7 → Normal', () {
+      expect(ScoringEngine.ybocsSeverity(0), AppConstants.severityNormal);
+      expect(ScoringEngine.ybocsSeverity(7), AppConstants.severityNormal);
+    });
+
+    test('Y-BOCS score 8-15 → Mild', () {
+      expect(ScoringEngine.ybocsSeverity(8), AppConstants.severityMild);
+      expect(ScoringEngine.ybocsSeverity(15), AppConstants.severityMild);
+    });
+
+    test('Y-BOCS score 32+ → Very Severe', () {
+      expect(ScoringEngine.ybocsSeverity(32), AppConstants.severityVerySevere);
+      expect(ScoringEngine.ybocsSeverity(40), AppConstants.severityVerySevere);
+    });
+
+    // MMSE max score
+    test('MMSE max score is 30', () {
+      expect(ScoringEngine.getMaxScore(AppConstants.scaleMMSE), 30);
+    });
+
+    // BPRS max score
+    test('BPRS max score is 168', () {
+      expect(ScoringEngine.getMaxScore(AppConstants.scaleBPRS), 168);
+    });
   });
 
   // ── Drug Engine Tests ───────────────────────────────────────────────────
@@ -247,6 +295,38 @@ void main() {
           diagnosis: 'Schizophrenia',
           severity: AppConstants.severitySevere);
       expect(s.notes.contains('⚠️'), true);
+    });
+
+    test('PTSD suggestion returns sertraline', () {
+      final s = DrugEngine.getSuggestions(
+          diagnosis: 'PTSD', severity: AppConstants.severityModerate);
+      expect(s.firstLine.any((d) => d.toLowerCase().contains('sertraline')),
+          true);
+    });
+
+    test('ADHD suggestion returns methylphenidate', () {
+      final s = DrugEngine.getSuggestions(
+          diagnosis: 'ADHD', severity: AppConstants.severityMild);
+      expect(
+          s.firstLine.any((d) => d.toLowerCase().contains('methylphenidate')),
+          true);
+    });
+
+    test('Severe depression includes suicidality warning', () {
+      final s = DrugEngine.getSuggestions(
+          diagnosis: 'Depression', severity: AppConstants.severitySevere);
+      expect(s.notes.toLowerCase().contains('suicid'), true);
+    });
+
+    test('All suggestions have non-empty firstLine', () {
+      for (final diag in [
+        'Schizophrenia', 'Bipolar', 'Depression', 'Anxiety',
+        'OCD', 'Dementia', 'PTSD', 'ADHD'
+      ]) {
+        final s = DrugEngine.getSuggestions(
+            diagnosis: diag, severity: AppConstants.severityModerate);
+        expect(s.firstLine.isNotEmpty, true, reason: '$diag firstLine empty');
+      }
     });
   });
 
@@ -399,6 +479,132 @@ void main() {
         itemScores: {},
       );
       expect(r.id.isNotEmpty, true);
+    });
+
+    test('ScaleResult fromMap with malformed date does not throw', () {
+      final map = {
+        'id': 'test-id',
+        'patient_id': 'pid',
+        'scale_name': 'PHQ-9',
+        'total_score': 5,
+        'severity': 'Mild',
+        'risk_level': 'Low Risk',
+        'item_scores': '',
+        'clinical_notes': '',
+        'assessed_at': 'NOT-A-DATE',
+      };
+      expect(() => ScaleResult.fromMap(map), returnsNormally);
+      final r = ScaleResult.fromMap(map);
+      expect(r.assessedAt, isA<DateTime>());
+    });
+
+    test('ScaleResult fromMap with null date does not throw', () {
+      final map = {
+        'id': 'test-id',
+        'patient_id': 'pid',
+        'scale_name': 'PHQ-9',
+        'total_score': 5,
+        'severity': 'Mild',
+        'risk_level': 'Low Risk',
+        'item_scores': '',
+        'clinical_notes': '',
+        'assessed_at': null,
+      };
+      expect(() => ScaleResult.fromMap(map), returnsNormally);
+    });
+
+    test('ScaleResult preserves empty itemScores', () {
+      final r = ScaleResult(
+        patientId: 'pid',
+        scaleName: 'BPRS',
+        totalScore: 0,
+        severity: 'Normal',
+        riskLevel: 'No Risk',
+        itemScores: {},
+      );
+      final r2 = ScaleResult.fromMap(r.toMap());
+      expect(r2.itemScores.isEmpty, true);
+    });
+  });
+
+  // ── Patient Model Resilience Tests ──────────────────────────────────────
+  group('Patient Model Resilience', () {
+    test('Patient fromMap with malformed date does not throw', () {
+      final map = {
+        'id': 'test-id',
+        'name': 'John',
+        'age': 30,
+        'gender': 'Male',
+        'diagnosis': '',
+        'ward': '',
+        'created_at': 'INVALID',
+        'updated_at': 'ALSO-INVALID',
+      };
+      expect(() => Patient.fromMap(map), returnsNormally);
+      final p = Patient.fromMap(map);
+      expect(p.createdAt, isA<DateTime>());
+      expect(p.updatedAt, isA<DateTime>());
+    });
+
+    test('Patient fromMap with null dates does not throw', () {
+      final map = {
+        'id': 'test-id',
+        'name': 'Jane',
+        'age': 25,
+        'gender': 'Female',
+        'diagnosis': null,
+        'ward': null,
+        'created_at': null,
+        'updated_at': null,
+      };
+      expect(() => Patient.fromMap(map), returnsNormally);
+    });
+  });
+
+  // ── SpeechService Tests ─────────────────────────────────────────────────
+  group('SpeechService', () {
+    test('parseScore parses English words', () {
+      expect(SpeechService.parseScore('zero'), 0);
+      expect(SpeechService.parseScore('one'), 1);
+      expect(SpeechService.parseScore('two'), 2);
+      expect(SpeechService.parseScore('three'), 3);
+      expect(SpeechService.parseScore('four'), 4);
+      expect(SpeechService.parseScore('five'), 5);
+      expect(SpeechService.parseScore('six'), 6);
+      expect(SpeechService.parseScore('seven'), 7);
+    });
+
+    test('parseScore parses Tamil transliterated words', () {
+      expect(SpeechService.parseScore('sifar'), 0);
+      expect(SpeechService.parseScore('onru'), 1);
+      expect(SpeechService.parseScore('irandu'), 2);
+      expect(SpeechService.parseScore('moondru'), 3);
+      expect(SpeechService.parseScore('naangu'), 4);
+      expect(SpeechService.parseScore('ainthu'), 5);
+      expect(SpeechService.parseScore('aaru'), 6);
+      expect(SpeechService.parseScore('yezhu'), 7);
+    });
+
+    test('parseScore parses digit strings', () {
+      expect(SpeechService.parseScore('0'), 0);
+      expect(SpeechService.parseScore('3'), 3);
+      expect(SpeechService.parseScore('27'), 27);
+    });
+
+    test('parseScore trims whitespace', () {
+      expect(SpeechService.parseScore('  three  '), 3);
+      expect(SpeechService.parseScore(' 5 '), 5);
+    });
+
+    test('parseScore is case-insensitive', () {
+      expect(SpeechService.parseScore('THREE'), 3);
+      expect(SpeechService.parseScore('One'), 1);
+    });
+
+    test('parseScore returns null for unrecognized input', () {
+      expect(SpeechService.parseScore(''), null);
+      expect(SpeechService.parseScore('hello'), null);
+      expect(SpeechService.parseScore('abc'), null);
     });
   });
 }

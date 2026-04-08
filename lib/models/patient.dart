@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 class Patient {
@@ -36,6 +37,16 @@ class Patient {
     };
   }
 
+  static DateTime _parseDate(String? raw) {
+    if (raw == null || raw.isEmpty) return DateTime.now();
+    try {
+      return DateTime.parse(raw);
+    } catch (_) {
+      debugPrint('Patient: malformed date "$raw", using now');
+      return DateTime.now();
+    }
+  }
+
   factory Patient.fromMap(Map<String, dynamic> map) {
     return Patient(
       id: map['id'] as String,
@@ -44,8 +55,8 @@ class Patient {
       gender: map['gender'] as String,
       diagnosis: map['diagnosis'] as String? ?? '',
       ward: map['ward'] as String? ?? '',
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      createdAt: _parseDate(map['created_at'] as String?),
+      updatedAt: _parseDate(map['updated_at'] as String?),
     );
   }
 

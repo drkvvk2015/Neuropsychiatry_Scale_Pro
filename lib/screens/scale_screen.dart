@@ -3,9 +3,12 @@ import '../services/database_service.dart';
 import '../services/scoring_engine.dart';
 import '../models/scale_result.dart';
 import '../core/constants.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_ext.dart';
 import '../widgets/alert_banner.dart';
 import '../voice/speech_service.dart';
+import '../voice/model_manager_sheet.dart';
 
 /// Scale assessment screen with full item-by-item scoring.
 class ScaleScreen extends StatefulWidget {
@@ -79,6 +82,7 @@ class _ScaleScreenState extends State<ScaleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizationsExt.of(context);
     final maxScore = ScoringEngine.getMaxScore(widget.scaleName);
     final progress = maxScore > 0 ? _totalScore / maxScore : 0.0;
 
@@ -87,28 +91,35 @@ class _ScaleScreenState extends State<ScaleScreen> {
         title: Text(widget.scaleName),
         actions: [
           IconButton(
+            icon: const Icon(Icons.memory),
+            tooltip: l10n.modelManager,
+            onPressed: () => showModelManagerSheet(context),
+          ),
+          IconButton(
             icon: Icon(
                 _isListening ? Icons.mic : Icons.mic_none),
-            tooltip: 'Voice Input',
+            tooltip: l10n.voiceInput,
             onPressed: _toggleVoice,
           ),
           TextButton(
             onPressed: _isSaving ? null : _saveResult,
-            child: const Text('SAVE',
+            child: Text(l10n.save.toUpperCase(),
                 style:
-                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
-      body: Column(
+      body: ResponsivePage(
+        padding: EdgeInsets.zero,
+        child: Column(
         children: [
           // Score header
-          _buildScoreHeader(_totalScore, maxScore, progress),
+          _buildScoreHeader(context, _totalScore, maxScore, progress),
           // C-SSRS alert
           if (_hasSuicideRisk)
             AlertBanner(
               riskLevel: _riskLevel,
-              message: 'Suicide risk detected — immediate evaluation needed',
+              message: l10n.suicideRiskDetected,
             ),
           // Scale items
           Expanded(
@@ -132,7 +143,7 @@ class _ScaleScreenState extends State<ScaleScreen> {
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2))
                     : const Icon(Icons.save),
-                label: const Text('Save Assessment'),
+                label: Text(l10n.saveAssessment),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   textStyle: const TextStyle(fontSize: 16),
@@ -142,17 +153,19 @@ class _ScaleScreenState extends State<ScaleScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
-  Widget _buildScoreHeader(int score, int maxScore, double progress) {
+  Widget _buildScoreHeader(BuildContext context, int score, int maxScore, double progress) {
+    final l10n = AppLocalizationsExt.of(context);
     final severityColor = widget.scaleName == AppConstants.scaleCSSRS
         ? AppTheme.riskColor(_severity)
         : AppTheme.severityColor(_severity);
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
         ),
@@ -163,7 +176,9 @@ class _ScaleScreenState extends State<ScaleScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Score: $score${maxScore > 0 ? " / $maxScore" : ""}',
+                maxScore > 0
+                    ? l10n.scoreWithMaxLabel(score, maxScore)
+                    : l10n.scoreLabel('$score'),
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -173,12 +188,14 @@ class _ScaleScreenState extends State<ScaleScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: severityColor.withOpacity(0.2),
+                  color: severityColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.6)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
                 ),
                 child: Text(
-                  _severity,
+                  widget.scaleName == AppConstants.scaleCSSRS
+                      ? l10n.riskLabel(_severity)
+                      : l10n.severityLabel(_severity),
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -189,7 +206,7 @@ class _ScaleScreenState extends State<ScaleScreen> {
             const SizedBox(height: 8),
             LinearProgressIndicator(
               value: progress.clamp(0.0, 1.0),
-              backgroundColor: Colors.white.withOpacity(0.3),
+              backgroundColor: Colors.white.withValues(alpha: 0.3),
               valueColor:
                   AlwaysStoppedAnimation<Color>(severityColor),
             ),
@@ -215,7 +232,7 @@ class _ScaleScreenState extends State<ScaleScreen> {
                 CircleAvatar(
                   radius: 14,
                   backgroundColor:
-                      AppTheme.primaryColor.withOpacity(0.1),
+                      AppTheme.primaryColor.withValues(alpha: 0.1),
                   child: Text('${index + 1}',
                       style: const TextStyle(
                           fontSize: 11,
@@ -306,7 +323,7 @@ class _ScaleScreenState extends State<ScaleScreen> {
         _isListening = false;
         _listeningItemIndex = null;
       });
-    } else {
+    } else if (!_isSaving) {
       setState(() {
         _isListening = true;
         _listeningItemIndex = 0;
@@ -329,15 +346,23 @@ class _ScaleScreenState extends State<ScaleScreen> {
             }
           }
         },
-        onError: (_) => setState(() {
-          _isListening = false;
-          _listeningItemIndex = null;
-        }),
+        onError: (error) {
+          setState(() {
+            _isListening = false;
+            _listeningItemIndex = null;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Voice input unavailable: $error')),
+            );
+          }
+        },
       );
     }
   }
 
   Future<void> _saveResult() async {
+    final l10n = AppLocalizationsExt.of(context);
     setState(() => _isSaving = true);
     final result = ScaleResult(
       patientId: widget.patientId,
@@ -347,24 +372,38 @@ class _ScaleScreenState extends State<ScaleScreen> {
       riskLevel: _riskLevel,
       itemScores: Map.from(_scores),
     );
-    await _db.insertScaleResult(result);
-    if (mounted) {
-      setState(() => _isSaving = false);
-      // Show result
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-            '${widget.scaleName} saved — Score: $_totalScore, $_severity'),
-        backgroundColor: AppTheme.successColor,
-      ));
-      if (_hasSuicideRisk) {
-        showAlertDialog(context, result);
-      } else {
-        Navigator.pop(context);
+    try {
+      await _db.insertScaleResult(result);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.savedAssessmentSnack(
+            widget.scaleName,
+            _totalScore,
+            widget.scaleName == AppConstants.scaleCSSRS
+                ? l10n.riskLabel(_severity)
+                : l10n.severityLabel(_severity),
+          )),
+          backgroundColor: AppTheme.successColor,
+        ));
+        if (_hasSuicideRisk) {
+          showAlertDialog(context, result);
+        } else {
+          Navigator.pop(context);
+        }
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save assessment: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
   void showAlertDialog(BuildContext context, ScaleResult result) {
+    final l10n = AppLocalizationsExt.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -372,12 +411,12 @@ class _ScaleScreenState extends State<ScaleScreen> {
         backgroundColor: AppTheme.dangerColor,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.emergency, color: Colors.white),
-            SizedBox(width: 8),
-            Text('SUICIDE RISK ALERT',
-                style: TextStyle(
+            const Icon(Icons.emergency, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(l10n.suicideRiskAlertTitle,
+                style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -386,18 +425,14 @@ class _ScaleScreenState extends State<ScaleScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'C-SSRS Risk Level: ${result.riskLevel}',
+              l10n.cssrsRiskLevel(l10n.riskLabel(result.riskLevel)),
               style: const TextStyle(
                   color: Colors.white, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              '• Do NOT leave patient alone\n'
-              '• Notify treating psychiatrist immediately\n'
-              '• Consider emergency psychiatric evaluation\n'
-              '• Remove access to lethal means\n'
-              '• Activate safety protocol',
-              style: TextStyle(color: Colors.white),
+            Text(
+              l10n.suicideProtocolBullets,
+              style: const TextStyle(color: Colors.white),
             ),
           ],
         ),
@@ -407,8 +442,8 @@ class _ScaleScreenState extends State<ScaleScreen> {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text('ACKNOWLEDGED',
-                style: TextStyle(
+            child: Text(l10n.acknowledged,
+                style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],

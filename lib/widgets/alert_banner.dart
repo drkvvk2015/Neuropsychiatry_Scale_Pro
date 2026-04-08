@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/constants.dart';
+import '../l10n/app_localizations_ext.dart';
 
 /// Alert banner for risk/severity warnings.
 class AlertBanner extends StatelessWidget {
@@ -17,6 +18,7 @@ class AlertBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizationsExt.of(context);
     final color = AppTheme.riskColor(riskLevel);
     final isCritical = riskLevel == AppConstants.riskCritical;
 
@@ -24,11 +26,11 @@ class AlertBanner extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color, width: isCritical ? 2 : 1),
-        boxShadow: isCritical
-            ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8)]
+        color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color, width: isCritical ? 2 : 1),
+          boxShadow: isCritical
+              ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8)]
             : null,
       ),
       child: ListTile(
@@ -38,7 +40,7 @@ class AlertBanner extends StatelessWidget {
           size: 32,
         ),
         title: Text(
-          riskLevel.toUpperCase(),
+          l10n.riskLabel(riskLevel).toUpperCase(),
           style: TextStyle(
             color: color,
             fontWeight: FontWeight.bold,
@@ -47,7 +49,7 @@ class AlertBanner extends StatelessWidget {
         ),
         subtitle: Text(
           message,
-          style: TextStyle(color: color.withOpacity(0.9)),
+          style: TextStyle(color: color.withValues(alpha: 0.9)),
         ),
         trailing: onDismiss != null
             ? IconButton(
@@ -62,21 +64,22 @@ class AlertBanner extends StatelessWidget {
 
 /// Emergency alert dialog for critical/high risk patients.
 void showEmergencyAlert(BuildContext context, String patientName, String risk) {
+  final l10n = AppLocalizationsExt.of(context);
   final isCritical = risk == AppConstants.riskCritical;
   showDialog(
     context: context,
     barrierDismissible: !isCritical,
     builder: (ctx) => AlertDialog(
       backgroundColor: isCritical
-          ? AppTheme.dangerColor.withOpacity(0.95)
-          : AppTheme.warningColor.withOpacity(0.95),
+          ? AppTheme.dangerColor.withValues(alpha: 0.95)
+          : AppTheme.warningColor.withValues(alpha: 0.95),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
           const Icon(Icons.emergency, color: Colors.white, size: 28),
           const SizedBox(width: 8),
           Text(
-            isCritical ? '🚨 CRITICAL ALERT' : '⚠️ HIGH RISK',
+            isCritical ? l10n.criticalAlertTitle : l10n.highRiskTitle,
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -89,24 +92,22 @@ void showEmergencyAlert(BuildContext context, String patientName, String risk) {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Patient: $patientName',
+            l10n.patientLabel(patientName),
             style: const TextStyle(color: Colors.white, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Immediate psychiatric evaluation required.\n'
-            'Do NOT leave patient unattended.\n'
-            'Alert treating team immediately.',
-            style: TextStyle(color: Colors.white),
+          Text(
+            l10n.emergencyDialogBody,
+            style: const TextStyle(color: Colors.white),
           ),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('ACKNOWLEDGE',
+          child: Text(l10n.acknowledge,
               style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ),
       ],
     ),

@@ -4,7 +4,9 @@ import '../services/scoring_engine.dart';
 import '../models/patient.dart';
 import '../models/scale_result.dart';
 import '../core/constants.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_ext.dart';
 import '../widgets/alert_banner.dart';
 
 /// ICU Mode — ultra-fast tap-based scoring for emergency/ward use.
@@ -48,12 +50,21 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   }
 
   Future<void> _loadPatients() async {
-    final patients = await _db.getAllPatients();
-    if (mounted) {
-      setState(() {
-        _patients = patients;
-        _loadingPatients = false;
-      });
+    try {
+      final patients = await _db.getAllPatients();
+      if (mounted) {
+        setState(() {
+          _patients = patients;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading patients: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingPatients = false);
     }
   }
 
@@ -111,9 +122,9 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   }
 
   Future<void> _saveResult() async {
+    final l10n = AppLocalizationsExt.of(context);
     if (_selectedPatient == null || _selectedScale == null) return;
     setState(() => _saving = true);
-    // Capture values before reset so the snackbar can reference them.
     final scaleName = _selectedScale!;
     final score = _totalScore;
     final result = ScaleResult(
@@ -124,21 +135,29 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
       riskLevel: _riskLevel,
       itemScores: Map.from(_scores),
     );
-    await _db.insertScaleResult(result);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Saved: $scaleName — Score: $score'),
-        backgroundColor: AppTheme.successColor,
-      ));
-      // Reset in a single setState to avoid intermediate broken state.
-      setState(() {
-        _saving = false;
-        _step = 0;
-        _selectedPatient = null;
-        _selectedScale = null;
-        _scores = {};
-        _currentItemIndex = 0;
-      });
+    try {
+      await _db.insertScaleResult(result);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.savedIcuSnack(scaleName, score)),
+          backgroundColor: AppTheme.successColor,
+        ));
+        setState(() {
+          _saving = false;
+          _step = 0;
+          _selectedPatient = null;
+          _selectedScale = null;
+          _scores = {};
+          _currentItemIndex = 0;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e')),
+        );
+      }
     }
   }
 
@@ -154,6 +173,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizationsExt.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A2E),
       appBar: AppBar(
@@ -163,8 +183,8 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
           children: [
             const Icon(Icons.flash_on, color: Colors.yellow),
             const SizedBox(width: 8),
-            const Text('ICU Mode',
-                style: TextStyle(
+            Text(l10n.icuMode,
+                 style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -173,14 +193,18 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.white),
               onPressed: _reset,
-              tooltip: 'Reset',
+              tooltip: l10n.reset,
             ),
         ],
       ),
       body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          child: _buildCurrentStep(),
+        child: ResponsivePage(
+          maxWidth: 1100,
+          padding: EdgeInsets.zero,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: _buildCurrentStep(),
+          ),
         ),
       ),
     );
@@ -202,20 +226,21 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   }
 
   Widget _buildPatientSelect() {
+    final l10n = AppLocalizationsExt.of(context);
     return Column(
       key: const ValueKey('patient'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _stepHeader('Step 1 / 3', 'Select Patient', Icons.person),
+        _stepHeader(l10n.stepOneOfThree, l10n.stepSelectPatient, Icons.person),
         Expanded(
           child: _loadingPatients
               ? const Center(child: CircularProgressIndicator(color: Colors.white))
               : _patients.isEmpty
                   ? Center(
                       child: Text(
-                        'No patients found.\nAdd patients from Dashboard.',
+                        l10n.noPatientsFoundAddFromDashboard,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white60),
+                        style: const TextStyle(color: Colors.white60),
                       ),
                     )
                   : ListView.builder(
@@ -237,7 +262,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold)),
                             subtitle: Text(
-                              '${p.age}Y • ${p.gender}${p.ward.isNotEmpty ? " • ${p.ward}" : ""}',
+                              '${p.age}Y • ${l10n.genderLabel(p.gender)}${p.ward.isNotEmpty ? " • ${p.ward}" : ""}',
                               style: const TextStyle(color: Colors.white60),
                             ),
                             trailing: const Icon(Icons.chevron_right,
@@ -252,16 +277,17 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   }
 
   Widget _buildScaleSelect() {
+    final l10n = AppLocalizationsExt.of(context);
     return Column(
       key: const ValueKey('scale'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _stepHeader('Step 2 / 3', 'Select Scale', Icons.assessment),
+        _stepHeader(l10n.stepTwoOfThree, l10n.stepSelectScale, Icons.assessment),
         _patientChip(),
         Expanded(
           child: GridView.count(
             padding: const EdgeInsets.all(16),
-            crossAxisCount: 2,
+            crossAxisCount: ResponsiveLayout.gridColumns(context, phone: 2, tablet: 3, desktop: 4),
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
             children: _quickScales
@@ -274,6 +300,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   }
 
   Widget _scaleButton(String scale) {
+    final l10n = AppLocalizationsExt.of(context);
     final isCssrs = scale == AppConstants.scaleCSSRS;
     return GestureDetector(
       onTap: () => _selectScale(scale),
@@ -290,7 +317,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
           boxShadow: [
             BoxShadow(
               color: (isCssrs ? AppTheme.dangerColor : AppTheme.primaryColor)
-                  .withOpacity(0.4),
+                  .withValues(alpha: 0.4),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -312,7 +339,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
                       fontWeight: FontWeight.bold,
                       fontSize: 16)),
               Text(
-                '${ScoringEngine.getItems(scale).length} items',
+                '${ScoringEngine.getItems(scale).length} ${l10n.assessments.toLowerCase()}',
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
@@ -323,6 +350,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   }
 
   Widget _buildScoring() {
+    final l10n = AppLocalizationsExt.of(context);
     final item = _items[_currentItemIndex];
     final progress = (_currentItemIndex + 1) / _items.length;
 
@@ -390,8 +418,8 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
                 setState(() => _step = 1);
               }
             },
-            child: const Text('← Back',
-                style: TextStyle(color: Colors.white54)),
+            child: Text('← ${l10n.cancel}',
+                style: const TextStyle(color: Colors.white54)),
           ),
         ),
       ],
@@ -432,6 +460,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   }
 
   Widget _buildResult() {
+    final l10n = AppLocalizationsExt.of(context);
     final severityColor = _selectedScale == AppConstants.scaleCSSRS
         ? AppTheme.riskColor(_riskLevel)
         : AppTheme.severityColor(_severity);
@@ -442,11 +471,11 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
       key: const ValueKey('result'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _stepHeader('Result', _selectedScale ?? '', Icons.check_circle),
+        _stepHeader(l10n.stepReviewResult, _selectedScale ?? '', Icons.check_circle),
         if (isCritical)
           AlertBanner(
             riskLevel: _riskLevel,
-            message: 'Urgent intervention required',
+            message: l10n.urgentClinicalAttention,
           ),
         Expanded(
           child: Center(
@@ -459,7 +488,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
                   height: 140,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: severityColor.withOpacity(0.15),
+                    color: severityColor.withValues(alpha: 0.15),
                     border:
                         Border.all(color: severityColor, width: 4),
                   ),
@@ -473,22 +502,24 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
                             fontSize: 42,
                             fontWeight: FontWeight.bold),
                       ),
-                      Text('Score',
+                        Text(l10n.scoreLabel('').replaceAll(': ', ''),
                           style: TextStyle(
-                              color: severityColor.withOpacity(0.8))),
+                              color: severityColor.withValues(alpha: 0.8))),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  _severity,
+                      _selectedScale == AppConstants.scaleCSSRS
+                        ? l10n.riskLabel(_severity)
+                        : l10n.severityLabel(_severity),
                   style: TextStyle(
                       color: severityColor,
                       fontSize: 28,
                       fontWeight: FontWeight.bold),
                 ),
                 if (_selectedScale == AppConstants.scaleCSSRS)
-                  Text(_riskLevel,
+                      Text(l10n.riskLabel(_riskLevel),
                       style: const TextStyle(
                           color: Colors.white70, fontSize: 18)),
                 const SizedBox(height: 8),
@@ -514,7 +545,7 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2))
                     : const Icon(Icons.save),
-                label: const Text('Save & Continue'),
+                label: Text('${l10n.save} & Continue'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                   backgroundColor: AppTheme.successColor,
@@ -523,8 +554,8 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: _reset,
-                child: const Text('← New Patient',
-                    style: TextStyle(color: Colors.white54)),
+                child: Text('← ${l10n.addPatient}',
+                    style: const TextStyle(color: Colors.white54)),
               ),
             ],
           ),
@@ -555,13 +586,14 @@ class _IcuModeScreenState extends State<IcuModeScreen> {
   }
 
   Widget _patientChip() {
+    final l10n = AppLocalizationsExt.of(context);
     if (_selectedPatient == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Chip(
         backgroundColor: Colors.white12,
         label: Text(
-          '👤 ${_selectedPatient!.name}  •  ${_selectedPatient!.age}Y',
+          '👤 ${_selectedPatient!.name}  •  ${_selectedPatient!.age}${l10n.age}',
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         avatar: const Icon(Icons.person, color: Colors.white54, size: 16),

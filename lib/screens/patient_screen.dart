@@ -6,7 +6,9 @@ import '../services/scoring_engine.dart';
 import '../models/patient.dart';
 import '../models/scale_result.dart';
 import '../core/constants.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_ext.dart';
 import '../widgets/alert_banner.dart';
 import '../widgets/scale_card.dart';
 import 'scale_screen.dart';
@@ -55,14 +57,23 @@ class _PatientScreenState extends State<PatientScreen>
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final patient = await _db.getPatient(widget.patientId);
-    final results = await _db.getResultsForPatient(widget.patientId);
-    if (mounted) {
-      setState(() {
-        _patient = patient;
-        _results = results;
-        _loading = false;
-      });
+    try {
+      final patient = await _db.getPatient(widget.patientId);
+      final results = await _db.getResultsForPatient(widget.patientId);
+      if (mounted) {
+        setState(() {
+          _patient = patient;
+          _results = results;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading patient: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -96,11 +107,12 @@ class _PatientScreenState extends State<PatientScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizationsExt.of(context);
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (_patient == null) {
-      return const Scaffold(body: Center(child: Text('Patient not found')));
+      return Scaffold(body: Center(child: Text(l10n.patientNotFound)));
     }
 
     final patient = _patient!;
@@ -123,15 +135,18 @@ class _PatientScreenState extends State<PatientScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           indicatorColor: Colors.white,
-          tabs: const [
-            Tab(icon: Icon(Icons.assessment), text: 'Scales'),
-            Tab(icon: Icon(Icons.smart_toy), text: 'AI Summary'),
-            Tab(icon: Icon(Icons.medication), text: 'Drugs'),
+          tabs: [
+            Tab(icon: const Icon(Icons.assessment), text: l10n.scalesTab),
+            Tab(icon: const Icon(Icons.smart_toy), text: l10n.aiSummaryTab),
+            Tab(icon: const Icon(Icons.medication), text: l10n.drugsTab),
           ],
         ),
       ),
-      body: Column(
+      body: ResponsivePage(
+        padding: EdgeInsets.zero,
+        child: Column(
         children: [
           // Patient header
           _buildPatientHeader(patient),
@@ -139,7 +154,7 @@ class _PatientScreenState extends State<PatientScreen>
           if (showAlert)
             AlertBanner(
               riskLevel: risk,
-              message: 'Urgent clinical attention required',
+              message: l10n.urgentClinicalAttention,
               onDismiss: () => setState(() {}),
             ),
           // Tabs
@@ -155,18 +170,23 @@ class _PatientScreenState extends State<PatientScreen>
           ),
         ],
       ),
+      ),
     );
   }
 
   Widget _buildPatientHeader(Patient patient) {
+    final l10n = AppLocalizationsExt.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
-      color: AppTheme.primaryColor.withOpacity(0.05),
-      child: Row(
+      color: AppTheme.primaryColor.withValues(alpha: 0.05),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: AppTheme.primaryColor.withOpacity(0.2),
+            backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.2),
             child: Text(
               patient.name.isNotEmpty ? patient.name[0].toUpperCase() : '?',
               style: const TextStyle(
@@ -176,7 +196,8 @@ class _PatientScreenState extends State<PatientScreen>
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          SizedBox(
+            width: ResponsiveLayout.isDesktop(context) ? 420 : MediaQuery.sizeOf(context).width - 120,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -184,7 +205,7 @@ class _PatientScreenState extends State<PatientScreen>
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 18)),
                 Text(
-                    '${patient.age}Y • ${patient.gender} • ${patient.ward.isNotEmpty ? patient.ward : "OPD"}'),
+                  '${patient.age}Y • ${l10n.genderLabel(patient.gender)} • ${patient.ward.isNotEmpty ? patient.ward : l10n.wardFallback}'),
                 if (patient.diagnosis.isNotEmpty)
                   Text('Dx: ${patient.diagnosis}',
                       style: const TextStyle(
@@ -198,18 +219,18 @@ class _PatientScreenState extends State<PatientScreen>
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.riskColor(_overallRisk).withOpacity(0.15),
+                color: AppTheme.riskColor(_overallRisk).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.riskColor(_overallRisk)),
               ),
               child: Column(
                 children: [
-                  Text('Risk',
+                  Text(l10n.risk,
                       style: TextStyle(
                           color: AppTheme.riskColor(_overallRisk),
                           fontSize: 10)),
                   Text(
-                    _overallRisk.replaceAll(' Risk', '').replaceAll(' ', '\n'),
+                    l10n.riskLabel(_overallRisk).replaceAll(' Risk', '').replaceAll(' ', '\n'),
                     style: TextStyle(
                         color: AppTheme.riskColor(_overallRisk),
                         fontWeight: FontWeight.bold,
@@ -225,8 +246,15 @@ class _PatientScreenState extends State<PatientScreen>
   }
 
   Widget _buildScalesTab() {
-    return ListView.builder(
+    final columns = ResponsiveLayout.gridColumns(context, phone: 1, tablet: 2, desktop: 2);
+    return GridView.builder(
       padding: const EdgeInsets.all(12),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: ResponsiveLayout.isPhone(context) ? 2.2 : 2.5,
+      ),
       itemCount: _scales.length,
       itemBuilder: (ctx, i) {
         final scaleName = _scales[i];
@@ -256,6 +284,7 @@ class _PatientScreenState extends State<PatientScreen>
   }
 
   Widget _buildAiSummaryTab() {
+    final l10n = AppLocalizationsExt.of(context);
     if (_results.isEmpty) {
       return Center(
         child: Column(
@@ -264,7 +293,7 @@ class _PatientScreenState extends State<PatientScreen>
             Icon(Icons.smart_toy, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
-              'Complete at least one scale\nto generate AI summary',
+              l10n.completeScaleForSummary,
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade500),
             ),
@@ -286,10 +315,10 @@ class _PatientScreenState extends State<PatientScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.05),
+              color: AppTheme.primaryColor.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: AppTheme.primaryColor.withOpacity(0.3)),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.3)),
             ),
             child: Text(
               summary,
@@ -300,9 +329,9 @@ class _PatientScreenState extends State<PatientScreen>
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            '⚠️ AI-generated. Verify with clinical judgment.',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
+          Text(
+            l10n.aiVerifyNotice,
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
         ],
       ),
@@ -310,6 +339,7 @@ class _PatientScreenState extends State<PatientScreen>
   }
 
   Widget _buildDrugsTab() {
+    final l10n = AppLocalizationsExt.of(context);
     if (_patient == null || _patient!.diagnosis.isEmpty) {
       return Center(
         child: Column(
@@ -318,7 +348,7 @@ class _PatientScreenState extends State<PatientScreen>
             Icon(Icons.medication, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
-              'Add a diagnosis to see\ndrug suggestions',
+              l10n.addDiagnosisForDrugs,
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade500),
             ),
@@ -342,27 +372,26 @@ class _PatientScreenState extends State<PatientScreen>
               style: const TextStyle(
                   fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 16),
-          _drugSection('🥇 First-Line', suggestion.firstLine,
+          _drugSection(l10n.firstLine, suggestion.firstLine,
               AppTheme.successColor),
           if (suggestion.secondLine.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _drugSection('🥈 Second-Line / Alternatives',
+            _drugSection(l10n.secondLineAlternatives,
                 suggestion.secondLine, AppTheme.warningColor),
           ],
           if (suggestion.adjuncts.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _drugSection(
-                '➕ Adjuncts', suggestion.adjuncts, AppTheme.accentColor),
+            _drugSection(l10n.adjuncts, suggestion.adjuncts, AppTheme.accentColor),
           ],
           if (suggestion.notes.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.warningColor.withOpacity(0.1),
+                color: AppTheme.warningColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: AppTheme.warningColor.withOpacity(0.5)),
+                    color: AppTheme.warningColor.withValues(alpha: 0.5)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,10 +410,9 @@ class _PatientScreenState extends State<PatientScreen>
             ),
           ],
           const SizedBox(height: 16),
-          const Text(
-            '⚠️ Guideline-based suggestions only. '
-            'Always verify dosing and contraindications.',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
+          Text(
+            l10n.guidelineOnly,
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
         ],
       ),
@@ -415,6 +443,7 @@ class _PatientScreenState extends State<PatientScreen>
   }
 
   Future<void> _showEditDialog() async {
+    final l10n = AppLocalizationsExt.of(context);
     final patient = _patient!;
     final nameCtrl = TextEditingController(text: patient.name);
     final ageCtrl = TextEditingController(text: patient.age.toString());
@@ -426,65 +455,87 @@ class _PatientScreenState extends State<PatientScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Edit Patient'),
+          title: Text(l10n.editPatient),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Patient Name'),
+                  decoration: InputDecoration(labelText: l10n.patientName),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: ageCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Age'),
+                  decoration: InputDecoration(labelText: l10n.age),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: gender,
-                  decoration: const InputDecoration(labelText: 'Gender'),
-                  items: ['Male', 'Female', 'Other']
-                      .map((g) =>
-                          DropdownMenuItem(value: g, child: Text(g)))
-                      .toList(),
+                  initialValue: gender,
+                  decoration: InputDecoration(labelText: l10n.gender),
+                  items: [
+                    DropdownMenuItem(value: 'Male', child: Text(l10n.male)),
+                    DropdownMenuItem(value: 'Female', child: Text(l10n.female)),
+                    DropdownMenuItem(value: 'Other', child: Text(l10n.other)),
+                  ],
                   onChanged: (v) =>
                       setDialogState(() => gender = v ?? 'Male'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: diagCtrl,
-                  decoration: const InputDecoration(labelText: 'Diagnosis'),
+                  decoration: InputDecoration(labelText: l10n.diagnosis),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: wardCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Ward / Unit'),
+                  decoration: InputDecoration(labelText: l10n.wardUnit),
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                onPressed: () {
+                  nameCtrl.dispose();
+                  ageCtrl.dispose();
+                  diagCtrl.dispose();
+                  wardCtrl.dispose();
+                  Navigator.pop(ctx);
+                },
+                child: Text(l10n.cancel)),
             ElevatedButton(
               onPressed: () async {
+                if (nameCtrl.text.trim().isEmpty) return;
+                final age = int.tryParse(ageCtrl.text);
+                if (age == null || age < 0 || age > 120) return;
                 final updated = patient.copyWith(
                   name: nameCtrl.text.trim(),
-                  age: int.tryParse(ageCtrl.text) ?? patient.age,
+                  age: age,
                   gender: gender,
                   diagnosis: diagCtrl.text.trim(),
                   ward: wardCtrl.text.trim(),
                 );
-                await _db.updatePatient(updated);
-                if (ctx.mounted) Navigator.pop(ctx);
-                _load();
+                try {
+                  await _db.updatePatient(updated);
+                  if (ctx.mounted) {
+                    nameCtrl.dispose();
+                    ageCtrl.dispose();
+                    diagCtrl.dispose();
+                    wardCtrl.dispose();
+                    Navigator.pop(ctx);
+                  }
+                  _load();
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(content: Text('Failed to save: $e')),
+                    );
+                  }
+                }
               },
-              child: const Text('Save'),
+              child: Text(l10n.save),
             ),
           ],
         ),
@@ -493,21 +544,21 @@ class _PatientScreenState extends State<PatientScreen>
   }
 
   Future<void> _confirmDelete() async {
+    final l10n = AppLocalizationsExt.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Patient?'),
-        content: const Text(
-            'This will delete all records for this patient. This action cannot be undone.'),
+        title: Text(l10n.deletePatientTitle),
+        content: Text(l10n.deletePatientBody),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(l10n.cancel)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.dangerColor),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

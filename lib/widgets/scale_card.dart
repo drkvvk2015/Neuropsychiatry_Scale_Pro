@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/constants.dart';
+import '../l10n/app_localizations_ext.dart';
 
 /// Card widget showing a psychiatric scale with score and severity.
 class ScaleCard extends StatelessWidget {
@@ -25,6 +26,7 @@ class ScaleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizationsExt.of(context);
     final hasScore = score != null;
     final displaySeverity = scaleName == AppConstants.scaleCSSRS ? riskLevel : severity;
     final severityColor = scaleName == AppConstants.scaleCSSRS
@@ -37,14 +39,16 @@ class ScaleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 12,
             children: [
               // Scale icon
               Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -61,7 +65,8 @@ class ScaleCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               // Name and status
-              Expanded(
+              SizedBox(
+                width: MediaQuery.sizeOf(context).width > 520 ? 340 : MediaQuery.sizeOf(context).width - 140,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -72,9 +77,7 @@ class ScaleCard extends StatelessWidget {
                         )),
                     if (hasScore)
                       Text(
-                        maxScore > 0
-                            ? 'Score: $score / $maxScore'
-                            : 'Score: $score',
+                        l10n.scoreLabel(maxScore > 0 ? '$score / $maxScore' : '$score'),
                         style: TextStyle(
                           color: Colors.grey.shade600,
                           fontSize: 13,
@@ -82,7 +85,7 @@ class ScaleCard extends StatelessWidget {
                       )
                     else
                       Text(
-                        'Tap to assess',
+                        l10n.tapToAssess,
                         style: TextStyle(
                           color: Colors.grey.shade400,
                           fontSize: 13,
@@ -105,12 +108,14 @@ class ScaleCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: severityColor.withOpacity(0.15),
+                    color: severityColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: severityColor),
                   ),
                   child: Text(
-                    displaySeverity,
+                    scaleName == AppConstants.scaleCSSRS
+                        ? l10n.riskLabel(displaySeverity)
+                        : l10n.severityLabel(displaySeverity),
                     style: TextStyle(
                       color: severityColor,
                       fontWeight: FontWeight.bold,

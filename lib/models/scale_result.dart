@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 class ScaleResult {
@@ -40,6 +41,16 @@ class ScaleResult {
     };
   }
 
+  static DateTime _parseDate(String? raw) {
+    if (raw == null || raw.isEmpty) return DateTime.now();
+    try {
+      return DateTime.parse(raw);
+    } catch (_) {
+      debugPrint('ScaleResult: malformed date "$raw", using now');
+      return DateTime.now();
+    }
+  }
+
   factory ScaleResult.fromMap(Map<String, dynamic> map) {
     final rawItems = map['item_scores'] as String? ?? '';
     final itemScores = <String, int>{};
@@ -60,7 +71,7 @@ class ScaleResult {
       riskLevel: map['risk_level'] as String,
       itemScores: itemScores,
       clinicalNotes: map['clinical_notes'] as String? ?? '',
-      assessedAt: DateTime.parse(map['assessed_at'] as String),
+      assessedAt: _parseDate(map['assessed_at'] as String?),
     );
   }
 }

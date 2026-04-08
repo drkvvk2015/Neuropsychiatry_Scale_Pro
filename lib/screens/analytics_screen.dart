@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+
 import '../services/database_service.dart';
+import '../services/export/export_service.dart';
 import '../models/patient.dart';
 import '../models/scale_result.dart';
 import '../core/constants.dart';
+import '../core/responsive.dart';
 import '../core/theme.dart';
+import '../l10n/app_localizations_ext.dart';
 
 /// Analytics screen with patient trend charts and CSV export.
 class AnalyticsScreen extends StatefulWidget {
@@ -19,11 +20,13 @@ class AnalyticsScreen extends StatefulWidget {
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   final _db = DatabaseService();
+  final _exportService = ExportService();
   List<Patient> _patients = [];
   List<ScaleResult> _allResults = [];
   Patient? _selectedPatient;
   String _selectedScale = AppConstants.scalePHQ9;
   bool _loading = true;
+  bool _exporting = false;
 
   static const _scales = [
     AppConstants.scaleBPRS,
@@ -44,15 +47,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final patients = await _db.getAllPatients();
-    final results = await _db.getAllResults();
-    if (mounted) {
-      setState(() {
-        _patients = patients;
-        _allResults = results;
-        _selectedPatient = patients.isNotEmpty ? patients.first : null;
-        _loading = false;
-      });
+    try {
+      final patients = await _db.getAllPatients();
+      final results = await _db.getAllResults();
+      if (mounted) {
+        setState(() {
+          _patients = patients;
+          _allResults = results;
+          _selectedPatient = patients.isNotEmpty ? patients.first : null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading analytics: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -85,15 +97,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizationsExt.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Analytics & Research'),
+        title: Text(l10n.analyticsTitle),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.download),
-            tooltip: 'Export CSV',
-            onPressed: _exportCsv,
-          ),
+          _exporting
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.download),
+                  tooltip: l10n.exportCsv,
+                  onPressed: _exportCsv,
+                ),
         ],
       ),
       body: _loading
@@ -101,6 +123,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           : _allResults.isEmpty
               ? _buildEmptyState()
               : SingleChildScrollView(
+                  child: ResponsivePage(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,10 +138,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ],
                   ),
                 ),
+                ),
     );
   }
 
   Widget _buildSummaryCards() {
+    final l10n = AppLocalizationsExt.of(context);
     final totalPatients = _patients.length;
     final totalAssessments = _allResults.length;
     final highRisk = _allResults
@@ -127,16 +152,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             r.riskLevel == AppConstants.riskCritical)
         .length;
 
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        _summaryCard('Patients', totalPatients, Icons.people,
-            AppTheme.primaryColor),
-        const SizedBox(width: 8),
-        _summaryCard('Assessments', totalAssessments, Icons.assignment,
-            AppTheme.secondaryColor),
-        const SizedBox(width: 8),
-        _summaryCard('High Risk', highRisk, Icons.warning,
-            AppTheme.dangerColor),
+        SizedBox(
+          width: ResponsiveLayout.isPhone(context) ? double.infinity : 220,
+          child: _summaryCard(l10n.patients, totalPatients, Icons.people,
+              AppTheme.primaryColor),
+        ),
+        SizedBox(
+          width: ResponsiveLayout.isPhone(context) ? double.infinity : 220,
+          child: _summaryCard(l10n.assessments, totalAssessments, Icons.assignment,
+              AppTheme.secondaryColor),
+        ),
+        SizedBox(
+          width: ResponsiveLayout.isPhone(context) ? double.infinity : 220,
+          child: _summaryCard(l10n.highRisk, highRisk, Icons.warning,
+              AppTheme.dangerColor),
+        ),
       ],
     );
   }
@@ -147,9 +181,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
@@ -161,7 +195,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     fontSize: 22,
                     fontWeight: FontWeight.bold)),
             Text(label,
-                style: TextStyle(color: color.withOpacity(0.8), fontSize: 11)),
+                style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 11)),
           ],
         ),
       ),
@@ -169,6 +203,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildPatientTrendChart() {
+    final l10n = AppLocalizationsExt.of(context);
     final results = _chartResults;
     return Card(
       child: Padding(
@@ -176,20 +211,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Patient Score Trend',
+            Text(l10n.patientTrendChart,
                 style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             // Patient selector
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Expanded(
+                SizedBox(
+                  width: ResponsiveLayout.isPhone(context) ? double.infinity : 280,
                   child: DropdownButtonFormField<Patient>(
-                    value: _selectedPatient,
-                    decoration: const InputDecoration(
-                        labelText: 'Patient',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
+                    initialValue: _selectedPatient,
+                    decoration: InputDecoration(
+                        labelText: l10n.patient,
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 8)),
                     items: _patients
                         .map((p) => DropdownMenuItem(
@@ -199,14 +237,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         setState(() => _selectedPatient = p),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
+                SizedBox(
+                  width: ResponsiveLayout.isPhone(context) ? double.infinity : 220,
                   child: DropdownButtonFormField<String>(
-                    value: _selectedScale,
-                    decoration: const InputDecoration(
-                        labelText: 'Scale',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
+                    initialValue: _selectedScale,
+                    decoration: InputDecoration(
+                        labelText: l10n.scale,
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 8)),
                     items: _scales
                         .map((s) =>
@@ -220,8 +258,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
             const SizedBox(height: 16),
             if (results.isEmpty)
-              const Center(
-                  child: Text('No data for selected patient/scale'))
+              Center(child: Text(l10n.noDataForSelection))
             else
               SizedBox(
                 height: 200,
@@ -276,7 +313,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         belowBarData: BarAreaData(
                           show: true,
                           color:
-                              AppTheme.primaryColor.withOpacity(0.1),
+                              AppTheme.primaryColor.withValues(alpha: 0.1),
                         ),
                       ),
                     ],
@@ -290,6 +327,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildSeverityPieChart() {
+    final l10n = AppLocalizationsExt.of(context);
     final dist = _severityDistribution;
     if (dist.isEmpty) return const SizedBox.shrink();
 
@@ -302,11 +340,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Severity Distribution (Ward)',
+            Text(l10n.severityDistributionWard,
                 style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
               children: [
                 SizedBox(
                   height: 160,
@@ -328,8 +368,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
+                SizedBox(
+                  width: ResponsiveLayout.isPhone(context) ? double.infinity : 220,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: entries
@@ -347,6 +387,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildScaleUsageChart() {
+    final l10n = AppLocalizationsExt.of(context);
     final dist = _scaleDistribution;
     if (dist.isEmpty) return const SizedBox.shrink();
 
@@ -360,9 +401,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Scale Usage',
+            Text(l10n.scaleUsage,
                 style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             SizedBox(
               height: 200,
@@ -449,16 +490,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    final l10n = AppLocalizationsExt.of(context);
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.analytics, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
+          const Icon(Icons.analytics, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
           Text(
-            'No data yet\nAssess patients to see analytics',
+            l10n.noAnalyticsData,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 16),
+            style: const TextStyle(color: Colors.grey, fontSize: 16),
           ),
         ],
       ),
@@ -466,19 +508,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Future<void> _exportCsv() async {
+    if (_exporting) return;
+    final l10n = AppLocalizationsExt.of(context);
+    setState(() => _exporting = true);
     try {
       final csv = await _db.exportToCsv();
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/neuroscale_export.csv');
-      await file.writeAsString(csv);
-      await Share.shareXFiles([XFile(file.path)],
-          subject: 'NeuroScale Pro — Data Export');
+      await _exportService.exportCsv(
+        csv,
+        'neuroscale_export.csv',
+        shareSubject: l10n.exportSubject,
+      );
     } catch (e) {
       if (mounted) {
+        final msg = e.toString();
+        final truncated = msg.length > 120 ? '${msg.substring(0, 120)}...' : msg;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
+          SnackBar(content: Text(l10n.exportFailed(truncated))),
         );
       }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
     }
   }
 }
