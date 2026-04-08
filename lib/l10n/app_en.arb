@@ -1,0 +1,198 @@
+{
+  "@@locale": "en",
+  "appTitle": "NeuroScale Pro",
+  "dashboardTitle": "NeuroScale Pro",
+  "analyticsTitle": "Analytics & Research",
+  "analytics": "Analytics",
+  "refresh": "Refresh",
+  "searchPatients": "Search patients...",
+  "criticalPatientsBanner": "{count} patient(s) require urgent attention",
+  "@criticalPatientsBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "total": "Total",
+  "assessed": "Assessed",
+  "urgent": "Urgent",
+  "patients": "Patients",
+  "assessments": "Assessments",
+  "highRisk": "High Risk",
+  "icuMode": "ICU Mode",
+  "addPatient": "Add Patient",
+  "patientNameRequired": "Patient Name *",
+  "patientName": "Patient Name",
+  "ageRequired": "Age *",
+  "age": "Age",
+  "gender": "Gender",
+  "male": "Male",
+  "female": "Female",
+  "other": "Other",
+  "diagnosis": "Diagnosis",
+  "wardUnit": "Ward / Unit",
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "deletePatientTitle": "Delete Patient?",
+  "deletePatientBody": "This will delete all records for this patient. This action cannot be undone.",
+  "noPatientsYet": "No patients yet\nTap + to add a patient",
+  "noPatientsMatch": "No patients match \"{query}\"",
+  "@noPatientsMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "patientNotFound": "Patient not found",
+  "scalesTab": "Scales",
+  "aiSummaryTab": "AI Summary",
+  "drugsTab": "Drugs",
+  "risk": "Risk",
+  "urgentClinicalAttention": "Urgent clinical attention required",
+  "completeScaleForSummary": "Complete at least one scale\nto generate AI summary",
+  "aiVerifyNotice": "AI-generated. Verify with clinical judgment.",
+  "addDiagnosisForDrugs": "Add a diagnosis to see\ndrug suggestions",
+  "firstLine": "First-Line",
+  "secondLineAlternatives": "Second-Line / Alternatives",
+  "adjuncts": "Adjuncts",
+  "guidelineOnly": "Guideline-based suggestions only. Always verify dosing and contraindications.",
+  "editPatient": "Edit Patient",
+  "scoreLabel": "Score: {score}",
+  "@scoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreWithMaxLabel": "Score: {score} / {max}",
+  "@scoreWithMaxLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "tapToAssess": "Tap to assess",
+  "voiceInput": "Voice Input",
+  "saveAssessment": "Save Assessment",
+  "suicideRiskDetected": "Suicide risk detected — immediate evaluation needed",
+  "savedAssessmentSnack": "{scale} saved — Score: {score}, {severity}",
+  "@savedAssessmentSnack": {
+    "placeholders": {
+      "scale": {
+        "type": "String"
+      },
+      "score": {
+        "type": "int"
+      },
+      "severity": {
+        "type": "String"
+      }
+    }
+  },
+  "suicideRiskAlertTitle": "SUICIDE RISK ALERT",
+  "cssrsRiskLevel": "C-SSRS Risk Level: {risk}",
+  "@cssrsRiskLevel": {
+    "placeholders": {
+      "risk": {
+        "type": "String"
+      }
+    }
+  },
+  "suicideProtocolBullets": "• Do NOT leave patient alone\n• Notify treating psychiatrist immediately\n• Consider emergency psychiatric evaluation\n• Remove access to lethal means\n• Activate safety protocol",
+  "acknowledged": "ACKNOWLEDGED",
+  "stepOneOfThree": "Step 1 / 3",
+  "stepTwoOfThree": "Step 2 / 3",
+  "stepSelectPatient": "Select Patient",
+  "stepSelectScale": "Select Scale",
+  "stepScoreItems": "Score Items",
+  "stepReviewResult": "Review Result",
+  "noPatientsFoundAddFromDashboard": "No patients found.\nAdd patients from Dashboard.",
+  "savedIcuSnack": "Saved: {scale} — Score: {score}",
+  "@savedIcuSnack": {
+    "placeholders": {
+      "scale": {
+        "type": "String"
+      },
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "reset": "Reset",
+  "patientTrendChart": "Patient Score Trend",
+  "patient": "Patient",
+  "scale": "Scale",
+  "noDataForSelection": "No data for selected patient/scale",
+  "severityDistributionWard": "Severity Distribution (Ward)",
+  "scaleUsage": "Scale Usage",
+  "noAnalyticsData": "No data yet\nAssess patients to see analytics",
+  "exportCsv": "Export CSV",
+  "exportSubject": "NeuroScale Pro — Data Export",
+  "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "criticalAlertTitle": "CRITICAL ALERT",
+  "highRiskTitle": "HIGH RISK",
+  "patientLabel": "Patient: {name}",
+  "@patientLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyDialogBody": "Immediate psychiatric evaluation required.\nDo NOT leave patient unattended.\nAlert treating team immediately.",
+  "acknowledge": "ACKNOWLEDGE",
+  "modelManager": "Model Manager",
+  "modelManagerHint": "Manage offline speech model overrides for supported languages.",
+  "bundledModel": "Bundled model",
+  "importedModel": "Imported model",
+  "importModel": "Import Model",
+  "clearModel": "Clear Imported Model",
+  "importNotSupportedWeb": "Direct model import is available on installed apps. The web app uses bundled speech assets.",
+  "modelImportSuccess": "Imported model for {language}",
+  "@modelImportSuccess": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "modelImportFailed": "Model import failed: {error}",
+  "@modelImportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "storageEncrypted": "Encrypted SQLite",
+  "storageBrowser": "Browser storage",
+  "responsiveModePhone": "Phone",
+  "responsiveModeTablet": "Tablet",
+  "responsiveModeDesktop": "Desktop",
+  "noRisk": "No Risk",
+  "lowRisk": "Low Risk",
+  "moderateRisk": "Moderate Risk",
+  "highRiskLabel": "High Risk",
+  "criticalRisk": "Critical Risk",
+  "normal": "Normal",
+  "mild": "Mild",
+  "moderate": "Moderate",
+  "severe": "Severe",
+  "verySevere": "Very Severe",
+  "wardFallback": "OPD"
+}
